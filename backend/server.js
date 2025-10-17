@@ -45,15 +45,18 @@ app.post('/create_preference', async (req, res) => {
           unit_price: Number(price),
           currency_id: 'BRL',
         }
-        payment_methods: {
-          excluded_payment_types: [
-            { id: "ticket" }  // Remove boleto
-          ],
-          excluded_payment_methods: [
-            { id: "debcaxa" }  // Remove cartão débito Caixa
-          ]
-        }
       ],
+      
+      payment_methods: {
+        excluded_payment_types: [
+          { id: "ticket" }  // Remove boleto
+        ],
+        excluded_payment_methods: [
+          { id: "debcaxa" }  // Remove cartão débito Caixa
+        ],
+        
+      },
+      
       back_urls: {
         // Redireciona para o resultado com o UID após pagamento aprovado
         success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
