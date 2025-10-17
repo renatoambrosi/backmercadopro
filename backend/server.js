@@ -48,9 +48,6 @@ app.post('/create_preference', async (req, res) => {
       ],
       
       payment_methods: {
-        excluded_payment_types: [
-          { id: "ticket" }  // Remove boleto
-        ],
         excluded_payment_methods: [
           { id: "debit_card" }  // Remove cartão débito Caixa
         ],
