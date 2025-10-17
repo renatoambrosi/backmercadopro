@@ -45,12 +45,3 @@ export default function Home() {
     </main>
   );
 }
-```
-
----
-
-### PASSO 3: Criar .env.local
-
-Crie o arquivo `frontend/.env.local`:
-```
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
