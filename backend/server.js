@@ -47,6 +47,15 @@ app.post('/create_preference', async (req, res) => {
         }
       ],
       
+      excluded_payment_types: [
+          { id: "nolbradesco" }  // Remove boleto
+        ],
+      payment_methods: {
+        excluded_payment_methods: [
+          { id: "caixa_card" }  // Remove cartão débito Caixa
+        ],
+        
+      },
       back_urls: {
         // Redireciona para o resultado com o UID após pagamento aprovado
         success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
