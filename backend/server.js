@@ -3,7 +3,7 @@ import { MercadoPagoConfig, Preference } from 'mercadopago';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-dotenv.config(); // ← ADICIONAR ESTA LINHA
+dotenv.config();
 
 const app = express();
 
@@ -15,11 +15,15 @@ const client = new MercadoPagoConfig({
 app.use(cors());
 app.use(express.json());
 
-// ← ADICIONAR ROTA DE HEALTH CHECK
+// Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'Backend rodando!', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'Backend rodando!', 
+    timestamp: new Date().toISOString() 
+  });
 });
 
+// Endpoint para criar preferência de pagamento
 app.post('/create_preference', async (req, res) => {
   try {
     const { title, quantity, price } = req.body;
@@ -61,6 +65,7 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
+// Endpoint para receber notificações de webhook
 app.post('/webhook', async (req, res) => {
   try {
     const { type, data } = req.body;
@@ -83,13 +88,3 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
-```
-
-#### ✅ Variáveis de Ambiente no RAILWAY:
-
-Configure no painel do Railway:
-```
-MERCADOPAGO_ACCESS_TOKEN=APP_USR-seu_token_real_aqui
-PORT=3001
-FRONTEND_URL=https://seu-dominio-vercel.vercel.app
-BACKEND_URL=https://seu-backend.up.railway.app
