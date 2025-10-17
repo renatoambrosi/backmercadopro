@@ -47,13 +47,6 @@ app.post('/create_preference', async (req, res) => {
         }
       ],
       
-      payment_methods: {
-        excluded_payment_methods: [
-          { id: "debit_card" }  // Remove cartão débito Caixa
-        ],
-        
-      },
-      
       back_urls: {
         // Redireciona para o resultado com o UID após pagamento aprovado
         success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
