@@ -1,7 +1,9 @@
-// server.js - Backend para criar preferências de pagamento
 import express from 'express';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config(); // ← ADICIONAR ESTA LINHA
 
 const app = express();
 
@@ -13,7 +15,11 @@ const client = new MercadoPagoConfig({
 app.use(cors());
 app.use(express.json());
 
-// Endpoint para criar preferência de pagamento
+// ← ADICIONAR ROTA DE HEALTH CHECK
+app.get('/', (req, res) => {
+  res.json({ status: 'Backend rodando!', timestamp: new Date().toISOString() });
+});
+
 app.post('/create_preference', async (req, res) => {
   try {
     const { title, quantity, price } = req.body;
@@ -26,7 +32,7 @@ app.post('/create_preference', async (req, res) => {
           title: title,
           quantity: Number(quantity),
           unit_price: Number(price),
-          currency_id: 'BRL', // Altere conforme seu país
+          currency_id: 'BRL',
         }
       ],
       back_urls: {
@@ -55,22 +61,14 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
-// Endpoint para receber notificações de webhook
 app.post('/webhook', async (req, res) => {
   try {
     const { type, data } = req.body;
     
     console.log('Webhook recebido:', { type, data });
     
-    // Processar apenas notificações de pagamento
     if (type === 'payment') {
       const paymentId = data.id;
-      
-      // Aqui você pode:
-      // 1. Buscar detalhes do pagamento na API do MP
-      // 2. Atualizar status do pedido no seu banco de dados
-      // 3. Enviar email de confirmação
-      
       console.log(`Pagamento ${paymentId} atualizado`);
     }
     
@@ -85,3 +83,13 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+```
+
+#### ✅ Variáveis de Ambiente no RAILWAY:
+
+Configure no painel do Railway:
+```
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-seu_token_real_aqui
+PORT=3001
+FRONTEND_URL=https://seu-dominio-vercel.vercel.app
+BACKEND_URL=https://seu-backend.up.railway.app
