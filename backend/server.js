@@ -26,7 +26,14 @@ app.get('/', (req, res) => {
 // Endpoint para criar preferência de pagamento
 app.post('/create_preference', async (req, res) => {
   try {
-    const { title, quantity, price } = req.body;
+    const { title, quantity, price, uid } = req.body;
+
+    // Validar UID
+    if (!uid) {
+      return res.status(400).json({ 
+        error: 'UID é obrigatório' 
+      });
+    }
 
     const preference = new Preference(client);
     
@@ -40,17 +47,26 @@ app.post('/create_preference', async (req, res) => {
         }
       ],
       back_urls: {
-        success: `${process.env.FRONTEND_URL}/success`,
-        failure: `${process.env.FRONTEND_URL}/failure`,
-        pending: `${process.env.FRONTEND_URL}/pending`
+        // Redireciona para o resultado com o UID após pagamento aprovado
+        success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
+        failure: `${process.env.FRONTEND_URL}/failure?uid=${uid}`,
+        pending: `${process.env.FRONTEND_URL}/pending?uid=${uid}`
       },
       auto_return: 'approved',
       notification_url: `${process.env.BACKEND_URL}/webhook`,
-      statement_descriptor: 'SUA LOJA',
-      external_reference: `ORDER-${Date.now()}`,
+      statement_descriptor: 'TESTE PROSPERIDADE',
+      // Armazena o UID na referência externa para rastreamento
+      external_reference: `${uid}-${Date.now()}`,
+      // Metadados adicionais (opcional, mas útil para relatórios)
+      metadata: {
+        uid: uid,
+        source: 'teste-prosperidade'
+      }
     };
 
     const result = await preference.create({ body });
+    
+    console.log(`Preferência criada para UID: ${uid}`);
     
     res.json({
       id: result.id,
@@ -74,7 +90,14 @@ app.post('/webhook', async (req, res) => {
     
     if (type === 'payment') {
       const paymentId = data.id;
-      console.log(`Pagamento ${paymentId} atualizado`);
+      
+      // Aqui você pode:
+      // 1. Buscar detalhes do pagamento na API do Mercado Pago
+      // 2. Extrair o UID do external_reference
+      // 3. Atualizar status no seu banco de dados
+      // 4. Enviar email de confirmação com o link personalizado
+      
+      console.log(`Pagamento ${paymentId} processado`);
     }
     
     res.status(200).send('OK');
@@ -87,4 +110,5 @@ app.post('/webhook', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Webhook URL: ${process.env.BACKEND_URL}/webhook`);
 });
