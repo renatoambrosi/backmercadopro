@@ -53,7 +53,9 @@ app.post('/create_preference', async (req, res) => {
             { id: "ticket" }   // Exclui cartões de débito
           ],
           excluded_payment_methods: [
-            { id: "account_money" } // Exclui saldo MP, opcional
+            { id: "bolbradesco" },      // Exclui boleto
+            { id: "caixa_card_row" }, // Exclui cartões de crédito
+            { id: "ticket" }   // Exclui cartões de débito
           ],
           default_payment_method_id: "pix" // Foca no Pix como padrão
   },
