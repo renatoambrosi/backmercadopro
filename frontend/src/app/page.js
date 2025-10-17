@@ -32,7 +32,7 @@ function HomeContent() {
         body: JSON.stringify({
           title: 'Teste de Prosperidade - Resultado Completo',
           quantity: 1,
-          price: 97.00,
+          price: 19.00,
           uid: uid
         }),
       });
@@ -75,7 +75,7 @@ function HomeContent() {
               disabled={loading}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-8 rounded-full transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
-              {loading ? 'Processando...' : 'Acessar Resultado Completo - R$ 97,00'}
+              {loading ? 'Processando...' : 'Acessar Resultado Completo - R$ 19,00'}
             </button>
             
             <p className="text-xs text-gray-500 mt-4">
