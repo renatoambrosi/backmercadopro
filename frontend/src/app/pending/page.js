@@ -37,3 +37,11 @@ function PendingContent() {
     </main>
   );
 }
+
+export default function Pending() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Carregando...</div>}>
+      <PendingContent />
+    </Suspense>
+  );
+}
