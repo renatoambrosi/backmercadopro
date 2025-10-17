@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function Home() {
+function HomeContent() {
   const [loading, setLoading] = useState(false);
   const [uid, setUid] = useState('');
   const searchParams = useSearchParams();
