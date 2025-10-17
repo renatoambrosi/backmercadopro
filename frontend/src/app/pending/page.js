@@ -1,8 +1,8 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function Pending() {
+function PendingContent() {
   const searchParams = useSearchParams();
   const [uid, setUid] = useState('');
 
