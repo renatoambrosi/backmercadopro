@@ -30,8 +30,8 @@ function HomeContent() {
         body: JSON.stringify({
           title: 'Teste de Prosperidade - Resultado Completo',
           quantity: 1,
-          price: 97.00, // Ajuste o valor conforme necessário
-          uid: uid // Envia o UID para o backend
+          price: 97.00,
+          uid: uid
         }),
       });
 
@@ -89,5 +89,13 @@ function HomeContent() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Carregando...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
