@@ -44,3 +44,11 @@ function FailureContent() {
     </main>
   );
 }
+
+export default function Failure() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Carregando...</div>}>
+      <FailureContent />
+    </Suspense>
+  );
+}
