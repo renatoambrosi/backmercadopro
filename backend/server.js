@@ -75,7 +75,7 @@ app.post('/create_preference', async (req, res) => {
 
     res.json({
       id: result.id,
-      init_point: result.init_point,
+      init_point: result.sandbox_init_point,
     });
   } catch (error) {
     console.error('Erro ao criar preferência:', error);
