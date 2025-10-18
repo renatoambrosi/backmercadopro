@@ -1,7 +1,5 @@
 'use client';
-
 export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -16,41 +14,36 @@ function HomeContent() {
       setUid(uidParam);
     }
   }, [searchParams]);
-
-  const pagar = async () => {
-    if (!uid) {
-      alert('UID não encontrado. Refaça o teste.');
-      return;
+  
+  // Auto-redirecionamento ao detectar UID
+  useEffect(() => {
+    if (uid) {
+      const startPayment = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/create_preference`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: 'Teste de Prosperidade - Resultado Completo',
+              quantity: 1,
+              price: 19.00,
+              uid: uid
+            }),
+          });
+          const data = await response.json();
+          if (data.init_point) {
+            window.location.href = data.init_point;
+          }
+        } catch (error) {
+          alert('Erro ao processar pagamento');
+        } finally {
+          setLoading(false);
+        }
+      };
+      startPayment();
     }
-
-    setLoading(true);
-    
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/create_preference`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Teste de Prosperidade - Resultado Completo',
-          quantity: 1,
-          price: 19.00,
-          uid: uid
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else {
-        alert('Erro ao criar preferência de pagamento');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao processar pagamento');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [uid]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
@@ -61,7 +54,6 @@ function HomeContent() {
         <p className="text-gray-600 mb-6">
           Desbloqueie seu resultado completo e descubra seu potencial de prosperidade!
         </p>
-        
         {uid ? (
           <>
             <div className="bg-purple-50 p-4 rounded-lg mb-6">
@@ -69,18 +61,12 @@ function HomeContent() {
                 Identificação: <span className="font-mono font-bold">{uid}</span>
               </p>
             </div>
-            
-            <button
-              onClick={pagar}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-8 rounded-full transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-            >
-              {loading ? 'Processando...' : 'Acessar Resultado Completo - R$ 19,00'}
-            </button>
-            
             <p className="text-xs text-gray-500 mt-4">
               Pagamento seguro via Mercado Pago
             </p>
+            {loading && (
+              <div className="mt-4 text-purple-700">Redirecionando para pagamento...</div>
+            )}
           </>
         ) : (
           <div className="bg-red-50 p-4 rounded-lg">
