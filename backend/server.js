@@ -46,7 +46,7 @@ app.post('/create_preference', async (req, res) => {
       payment_methods: {
         excluded_payment_methods: [
           { id: "bolbradesco" }, // Exclui boleto Bradesco
-          { id: "debcabal" }     // Exclui cartão débito virtual Caixa
+          { id: "caixa_card_row" }     // Exclui cartão débito virtual Caixa
         ],
         excluded_payment_types: [
           { id: "ticket" }       // Exclui todos os boletos
