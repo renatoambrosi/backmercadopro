@@ -49,7 +49,7 @@ app.post('/create_preference', async (req, res) => {
           { id: "debelo" }     // Exclui cartão débito virtual Caixa
         ],
         excluded_payment_types: [
-          { id: "ticket" }       // Exclui todos os boletos
+          { id: "ticket" },       // Exclui todos os boletos
           { id: "debit_card" }       // Exclui cartão débito virtual Caixa
         ]
         // NÃO definir default_payment_method_id para "pix", pois causa erro
