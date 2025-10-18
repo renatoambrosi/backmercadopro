@@ -46,10 +46,11 @@ app.post('/create_preference', async (req, res) => {
       payment_methods: {
         excluded_payment_methods: [
           { id: "bolbradesco" }, // Exclui boleto Bradesco
-          { id: "caixa_card" }     // Exclui cartão débito virtual Caixa
+          { id: "debelo" }     // Exclui cartão débito virtual Caixa
         ],
         excluded_payment_types: [
           { id: "ticket" }       // Exclui todos os boletos
+          { id: "debit_card" }       // Exclui cartão débito virtual Caixa
         ]
         // NÃO definir default_payment_method_id para "pix", pois causa erro
       },
