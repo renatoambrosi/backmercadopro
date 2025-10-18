@@ -45,13 +45,13 @@ app.post('/create_preference', async (req, res) => {
       ],
       payment_methods: {
         excluded_payment_methods: [
-          { id: "bolbradesco" }, // Exclui boleto
+          { id: "bolbradesco" }, // Exclui boleto Bradesco
           { id: "debcabal" }     // Exclui cartão débito virtual Caixa
         ],
         excluded_payment_types: [
           { id: "ticket" }       // Exclui todos os boletos
-        ],
-        default_payment_method_id: "pix" // PIX como padrão
+        ]
+        // NÃO definir default_payment_method_id para "pix", pois causa erro
       },
       back_urls: {
         success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
