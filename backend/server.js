@@ -6,7 +6,7 @@ dotenv.config();
 
 const app = express();
 
-// Configuração do Mercado Pago COM Client ID/Secret
+// Configuracao do Mercado Pago COM Client ID/Secret
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
   options: {
@@ -26,12 +26,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// Endpoint para criar preferência
+// Endpoint para criar preferencia
 app.post('/create_preference', async (req, res) => {
   try {
     const { title, quantity, price, uid } = req.body;
 
-    // UID opcional - não obrigatório
+    // UID opcional - nao obrigatorio
     const safeUid = uid || 'AUTO-GENERATED';
     const external_reference = `${safeUid}-${Date.now()}`;
 
@@ -65,7 +65,7 @@ app.post('/create_preference', async (req, res) => {
     const result = await preference.create({ body });
     const init_point = result.sandbox_init_point;
 
-    console.log(`Preferência criada: ${external_reference}`);
+    console.log(`Preferencia criada: ${external_reference}`);
     console.log(`Init point: ${init_point}`);
 
     return res.json({
@@ -74,9 +74,9 @@ app.post('/create_preference', async (req, res) => {
       external_reference,
     });
   } catch (error) {
-    console.error('Erro ao criar preferência:', error);
+    console.error('Erro ao criar preferencia:', error);
     return res.status(500).json({
-      error: 'Erro ao criar preferência',
+      error: 'Erro ao criar preferencia',
       details: error.message,
     });
   }
@@ -101,13 +101,13 @@ app.post('/webhook', async (req, res) => {
       const paymentId = data?.id || id;
       
       if (paymentId) {
-        // Detectar se é um webhook de teste
+        // Detectar se e um webhook de teste
         const isTestWebhook = paymentId === '123456' || live_mode === false || !live_mode;
         
         if (isTestWebhook) {
-          console.log(`✅ Webhook de teste recebido - ID: ${paymentId} - não consultando API`);
+          console.log(`Webhook de teste recebido - ID: ${paymentId} - nao consultando API`);
         } else {
-          // Apenas consultar a API se não for um teste
+          // Apenas consultar a API se nao for um teste
           try {
             const payment = new Payment(client);
             const paymentDetails = await payment.get({ id: paymentId });
@@ -115,7 +115,7 @@ app.post('/webhook', async (req, res) => {
             console.log(`Pagamento ${paymentId} - Status: ${paymentDetails.status}`);
             
             if (paymentDetails.status === 'approved') {
-              console.log(`✅ Pagamento aprovado: ${paymentDetails.external_reference}`);
+              console.log(`Pagamento aprovado: ${paymentDetails.external_reference}`);
             }
           } catch (paymentError) {
             console.error('Erro webhook payment:', paymentError.message);
@@ -136,4 +136,5 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Webhook URL: ${process.env.BACKEND_URL}/webhook`);
-  console.log('Ambiente: SANDBOX com Client ID/Secret configur
+  console.log('Ambiente: SANDBOX com Client ID/Secret configurado');
+});
