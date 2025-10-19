@@ -15,7 +15,13 @@ const client = new MercadoPagoConfig({
   }
 });
 
-app.use(cors());
+// CORS mais permissivo para evitar conflitos
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -82,70 +88,6 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
-// NOVO ENDPOINT: Consultar status do pagamento para sistema de polling
-app.get('/payment-status/:paymentId', async (req, res) => {
-  try {
-    const { paymentId } = req.params;
-    
-    // Validar se paymentId foi fornecido
-    if (!paymentId) {
-      return res.status(400).json({
-        error: 'Payment ID é obrigatório'
-      });
-    }
-
-    console.log(`Consultando status do pagamento: ${paymentId}`);
-
-    const payment = new Payment(client);
-    const paymentDetails = await payment.get({ id: paymentId });
-
-    // Extrair UID do external_reference ou metadata
-    let uid = null;
-    if (paymentDetails.external_reference) {
-      // Format: "UID-timestamp" - extrair apenas o UID
-      const parts = paymentDetails.external_reference.split('-');
-      uid = parts[0];
-    }
-    
-    // Fallback para metadata se UID não estiver no external_reference
-    if (!uid && paymentDetails.metadata && paymentDetails.metadata.uid) {
-      uid = paymentDetails.metadata.uid;
-    }
-
-    const response = {
-      status: paymentDetails.status,
-      status_detail: paymentDetails.status_detail,
-      external_reference: paymentDetails.external_reference,
-      uid: uid,
-      payment_method_id: paymentDetails.payment_method_id,
-      payment_type_id: paymentDetails.payment_type_id,
-      transaction_amount: paymentDetails.transaction_amount,
-      date_created: paymentDetails.date_created,
-      date_approved: paymentDetails.date_approved
-    };
-
-    console.log(`Status do pagamento ${paymentId}:`, response);
-
-    return res.json(response);
-
-  } catch (error) {
-    console.error('Erro ao consultar status do pagamento:', error);
-    
-    // Se o pagamento não existe, retornar erro específico
-    if (error.message && error.message.includes('404')) {
-      return res.status(404).json({
-        error: 'Pagamento não encontrado',
-        paymentId: req.params.paymentId
-      });
-    }
-
-    return res.status(500).json({
-      error: 'Erro ao consultar status do pagamento',
-      details: error.message
-    });
-  }
-});
-
 // Webhook GET - para teste IPN
 app.get('/webhook', (req, res) => {
   const { topic, id } = req.query;
@@ -202,10 +144,81 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
+// ENDPOINT DE POLLING - Movido para depois do webhook e com validações melhoradas
+app.get('/api/payment-status/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    
+    // Validação melhorada - aceitar apenas números
+    if (!paymentId || !/^\d+$/.test(paymentId)) {
+      return res.status(400).json({
+        error: 'Payment ID deve ser numérico',
+        received: paymentId
+      });
+    }
+
+    console.log(`[POLLING] Consultando status do pagamento: ${paymentId}`);
+
+    const payment = new Payment(client);
+    const paymentDetails = await payment.get({ id: paymentId });
+
+    // Extrair UID do external_reference ou metadata
+    let uid = null;
+    if (paymentDetails.external_reference) {
+      // Format: "UID-timestamp" - extrair apenas o UID
+      const parts = paymentDetails.external_reference.split('-');
+      uid = parts[0];
+    }
+    
+    // Fallback para metadata se UID não estiver no external_reference
+    if (!uid && paymentDetails.metadata && paymentDetails.metadata.uid) {
+      uid = paymentDetails.metadata.uid;
+    }
+
+    const response = {
+      status: paymentDetails.status,
+      status_detail: paymentDetails.status_detail,
+      external_reference: paymentDetails.external_reference,
+      uid: uid,
+      payment_method_id: paymentDetails.payment_method_id,
+      payment_type_id: paymentDetails.payment_type_id,
+      transaction_amount: paymentDetails.transaction_amount,
+      date_created: paymentDetails.date_created,
+      date_approved: paymentDetails.date_approved
+    };
+
+    console.log(`[POLLING] Status do pagamento ${paymentId}:`, response.status);
+
+    return res.json(response);
+
+  } catch (error) {
+    console.error('[POLLING] Erro ao consultar status:', error.message);
+    
+    // Se o pagamento não existe, retornar erro específico
+    if (error.message && (error.message.includes('404') || error.message.includes('not found'))) {
+      return res.status(404).json({
+        error: 'Pagamento não encontrado',
+        paymentId: req.params.paymentId
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Erro interno ao consultar pagamento',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Erro interno'
+    });
+  }
+});
+
+// Favicon handler para evitar erro 400
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).send();
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Webhook URL: ${process.env.BACKEND_URL}/webhook`);
+  console.log(`Polling URL: ${process.env.BACKEND_URL}/api/payment-status/:id`);
   console.log('Ambiente: PRODUCAO com Client ID/Secret configurado');
 });
