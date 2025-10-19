@@ -19,7 +19,8 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({
     status: 'Backend rodando!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCTION'
   });
 });
 
@@ -74,12 +75,19 @@ app.post('/create_preference', async (req, res) => {
 
     const result = await preference.create({ body });
 
+    // Detectar automaticamente se é sandbox ou produção baseado no access token
+    const isSandbox = process.env.MERCADOPAGO_ACCESS_TOKEN.startsWith('TEST-');
+    const init_point = isSandbox ? result.sandbox_init_point : result.init_point;
+
     console.log(`Preferência criada para UID: ${uid}, External Reference: ${external_reference}`);
+    console.log(`Ambiente: ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}`);
+    console.log(`Init point: ${init_point}`);
 
     res.json({
       id: result.id,
-      init_point: result.sandbox_init_point,
-      external_reference: external_reference
+      init_point: init_point,
+      external_reference: external_reference,
+      environment: isSandbox ? 'sandbox' : 'production'
     });
   } catch (error) {
     console.error('Erro ao criar preferência:', error);
@@ -99,7 +107,6 @@ app.get('/payment-status/:external_reference', async (req, res) => {
       return res.status(400).json({ error: 'External reference é obrigatório' });
     }
 
-    // Buscar pagamento pela external_reference
     const payment = new Payment(client);
     const searchResult = await payment.search({
       external_reference: external_reference
@@ -144,7 +151,6 @@ function validateWebhookSignature(req, res, next) {
       return res.status(400).send('Headers de assinatura ausentes');
     }
 
-    // Extrair ts e hash da assinatura
     const signatureParts = signature.split(',');
     let ts, hash;
     
@@ -159,10 +165,8 @@ function validateWebhookSignature(req, res, next) {
       return res.status(400).send('Formato de assinatura inválido');
     }
 
-    // Criar string de dados para validação
     const dataString = `id:${req.body.data?.id};request-id:${requestId};ts:${ts};`;
     
-    // Gerar HMAC usando secret key
     const expectedSignature = crypto
       .createHmac('sha256', process.env.MERCADOPAGO_PUBLIC_KEY)
       .update(dataString)
@@ -191,7 +195,6 @@ app.post('/webhook', validateWebhookSignature, async (req, res) => {
       const paymentId = data.id;
 
       try {
-        // Buscar detalhes do pagamento
         const payment = new Payment(client);
         const paymentDetails = await payment.get({ id: paymentId });
 
@@ -199,15 +202,8 @@ app.post('/webhook', validateWebhookSignature, async (req, res) => {
         console.log(`External Reference: ${paymentDetails.external_reference}`);
         console.log(`UID extraído: ${paymentDetails.metadata?.uid}`);
 
-        // Aqui você pode:
-        // 1. Salvar no banco de dados
-        // 2. Enviar email de confirmação
-        // 3. Ativar acesso ao conteúdo
-        // 4. Atualizar status no seu sistema
-
         if (paymentDetails.status === 'approved') {
           console.log(`✅ Pagamento aprovado para UID: ${paymentDetails.metadata?.uid}`);
-          // TODO: Implementar ações para pagamento aprovado
         }
 
       } catch (paymentError) {
@@ -231,4 +227,5 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Backend URL: ${BACKEND_URL}`);
   console.log(`Webhook URL: ${BACKEND_URL}/webhook`);
+  console.log(`Ambiente: ${process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-') ? 'SANDBOX' : 'PRODUÇÃO'}`);
 });
