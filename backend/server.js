@@ -2,7 +2,6 @@ import express from 'express';
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import crypto from 'crypto';
 dotenv.config();
 
 const app = express();
@@ -20,7 +19,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'Backend rodando!',
     timestamp: new Date().toISOString(),
-    note: 'Ambiente de checkout forçado para SANDBOX pelo código'
+    note: 'Ambiente de checkout forçado para SANDBOX pelo código',
   });
 });
 
@@ -43,17 +42,11 @@ app.post('/create_preference', async (req, res) => {
           quantity: Number(quantity),
           unit_price: Number(price),
           currency_id: 'BRL',
-        }
+        },
       ],
       payment_methods: {
-        excluded_payment_methods: [
-          { id: 'bolbradesco' },
-          { id: 'debelo' },
-        ],
-        excluded_payment_types: [
-          { id: 'ticket' },
-          { id: 'debit_card' },
-        ],
+        excluded_payment_methods: [{ id: 'bolbradesco' }, { id: 'debelo' }],
+        excluded_payment_types: [{ id: 'ticket' }, { id: 'debit_card' }],
       },
       back_urls: {
         success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
@@ -73,14 +66,14 @@ app.post('/create_preference', async (req, res) => {
     const init_point = result.sandbox_init_point;
 
     console.log(`Preferência criada para UID: ${uid}, External Reference: ${external_reference}`);
-    console.log(`Ambiente: SANDBOX (FORÇADO)`);
+    console.log('Ambiente: SANDBOX (FORÇADO)');
     console.log(`Init point: ${init_point}`);
 
     return res.json({
       id: result.id,
-      init_point,                // sempre sandbox
+      init_point, // sempre sandbox
       external_reference,
-      environment: 'sandbox',    // explícito
+      environment: 'sandbox', // explícito
     });
   } catch (error) {
     console.error('Erro ao criar preferência:', error);
@@ -104,44 +97,45 @@ app.get('/payment-status/:external_reference', async (req, res) => {
 
     console.log(`Consultando status para: ${external_reference}`);
 
-    signatureParts.forEach((part) => {
-      const [key, value] = part.split('=');
-      if (key === 'ts') ts = value;
-      if (key === 'v1') hash = value;
+    if (!searchResult.results || searchResult.results.length === 0) {
+      return res.json({
+        status: 'pending',
+        message: 'Pagamento não encontrado ou ainda não processado',
+      });
+    }
+
+    const latestPayment = searchResult.results[0];
+
+    return res.json({
+      status: latestPayment.status,
+      payment_id: latestPayment.id,
+      external_reference,
+      payment_method: latestPayment.payment_method_id,
+      status_detail: latestPayment.status_detail,
+    });
+  } catch (error) {
+    console.error('Erro ao consultar status:', error);
+    return res.status(500).json({
+      error: 'Erro ao consultar status do pagamento',
+      details: error.message,
+    });
+  }
+});
+
+// ===== Webhook SEM validação (ambiente de teste) =====
+app.post('/webhook', async (req, res) => {
+  try {
+    const { type, data, action } = req.body || {};
+
+    console.log('Webhook recebido:', {
+      type,
+      data,
+      action,
+      timestamp: new Date().toISOString(),
+      hasHeaders: !!req.headers,
     });
 
-    if (!ts || !hash) {
-      console.log('Formato de assinatura inválido');
-      return res.status(400).send('Formato de assinatura inválido');
-    }
-
-    const dataString = `id:${req.body.data?.id};request-id:${requestId};ts:${ts};`;
-
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.MERCADOPAGO_ACCESS_TOKEN)
-      .update(dataString)
-      .digest('hex');
-
-    if (expectedSignature !== hash) {
-      console.log('Assinatura inválida');
-      return res.status(401).send('Assinatura inválida');
-    }
-
-    return next();
-  } catch (error) {
-    console.error('Erro na validação da assinatura:', error);
-    return res.status(500).send('Erro interno');
-  }
-}
-
-// Endpoint para receber notificações de webhook
-app.post('/webhook', validateWebhookSignature, async (req, res) => {
-  try {
-    const { type, data, action } = req.body;
-
-    console.log('Webhook recebido:', { type, data, action, timestamp: new Date().toISOString() });
-
-    if (type === 'payment') {
+    if (type === 'payment' && data?.id) {
       const paymentId = data.id;
       try {
         const payment = new Payment(client);
@@ -156,16 +150,19 @@ app.post('/webhook', validateWebhookSignature, async (req, res) => {
           // TODO: ações para aprovado
         }
       } catch (paymentError) {
-        console.error('Erro ao buscar detalhes do pagamento:', paymentError);
+        console.error('Erro ao buscar detalhes do pagamento:', paymentError?.message || paymentError);
       }
+    } else {
+      console.log('Evento não tratado ou payload inválido:', { type, data });
     }
 
     return res.status(200).send('OK');
   } catch (error) {
-    console.error('Erro no webhook:', error);
+    console.error('Erro no webhook:', error?.message || error);
     return res.status(500).send('Error');
   }
 });
+// ===== FIM webhook =====
 
 const PORT = process.env.PORT || 3001;
 const BACKEND_URL = process.env.RAILWAY_PUBLIC_DOMAIN
@@ -176,5 +173,5 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Backend URL: ${BACKEND_URL}`);
   console.log(`Webhook URL: ${BACKEND_URL}/webhook`);
-  console.log(`Ambiente: SANDBOX (FORÇADO NO INIT_POINT)`);
+  console.log('Ambiente: SANDBOX (FORÇADO NO INIT_POINT)');
 });
