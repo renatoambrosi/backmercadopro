@@ -85,27 +85,36 @@ app.post('/create_preference', async (req, res) => {
 // Webhook
 app.post('/webhook', async (req, res) => {
   try {
-    const { type, data, action } = req.body || {};
+    const { type, data, action, live_mode } = req.body || {};
 
     console.log('Webhook recebido:', {
       type,
       data,
       action,
+      live_mode,
       timestamp: new Date().toISOString(),
     });
 
     if (type === 'payment' && data?.id) {
-      try {
-        const payment = new Payment(client);
-        const paymentDetails = await payment.get({ id: data.id });
+      // Detectar se é um webhook de teste
+      const isTestWebhook = data.id === '123456' || live_mode === false;
+      
+      if (isTestWebhook) {
+        console.log('✅ Webhook de teste recebido com sucesso - não consultando API');
+      } else {
+        // Apenas consultar a API se não for um teste
+        try {
+          const payment = new Payment(client);
+          const paymentDetails = await payment.get({ id: data.id });
 
-        console.log(`Pagamento ${data.id} - Status: ${paymentDetails.status}`);
-        
-        if (paymentDetails.status === 'approved') {
-          console.log(`✅ Pagamento aprovado: ${paymentDetails.external_reference}`);
+          console.log(`Pagamento ${data.id} - Status: ${paymentDetails.status}`);
+          
+          if (paymentDetails.status === 'approved') {
+            console.log(`✅ Pagamento aprovado: ${paymentDetails.external_reference}`);
+          }
+        } catch (paymentError) {
+          console.error('Erro webhook payment:', paymentError.message);
         }
-      } catch (paymentError) {
-        console.error('Erro webhook payment:', paymentError.message);
       }
     }
 
