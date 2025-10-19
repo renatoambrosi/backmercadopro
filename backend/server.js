@@ -6,8 +6,13 @@ dotenv.config();
 
 const app = express();
 
+// Configuração MercadoPago com Client ID + Client Secret
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+  options: {
+    clientId: process.env.MERCADOPAGO_CLIENT_ID,
+    clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET,
+  }
 });
 
 app.use(cors());
@@ -15,7 +20,7 @@ app.use(express.json());
 
 app.get('/', (req, res) => {
   res.json({
-    status: 'Backend teste MercadoPago',
+    status: 'Backend teste MercadoPago com Client ID/Secret',
     timestamp: new Date().toISOString(),
   });
 });
@@ -45,7 +50,7 @@ app.post('/create_preference', async (req, res) => {
     const result = await preference.create({ body });
     const init_point = result.sandbox_init_point;
 
-    console.log('Preferência criada - Init point:', init_point);
+    console.log('Preferência criada com Client ID/Secret - Init point:', init_point);
 
     return res.json({
       id: result.id,
@@ -63,4 +68,5 @@ app.post('/create_preference', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+  console.log('Configurado com Client ID + Client Secret');
 });
