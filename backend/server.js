@@ -82,7 +82,14 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
-// Webhook
+// Webhook GET - para teste IPN
+app.get('/webhook', (req, res) => {
+  const { topic, id } = req.query;
+  console.log('IPN Test recebido (GET):', { topic, id });
+  return res.status(200).send('OK');
+});
+
+// Webhook POST - para notificacoes reais
 app.post('/webhook', async (req, res) => {
   try {
     const { type, data, action, live_mode, id } = req.body || {};
