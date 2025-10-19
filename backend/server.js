@@ -15,25 +15,22 @@ const client = new MercadoPagoConfig({
 app.use(cors());
 app.use(express.json());
 
-// Health check
+// Health check (sem detecção automática)
 app.get('/', (req, res) => {
   res.json({
     status: 'Backend rodando!',
     timestamp: new Date().toISOString(),
-    environment: process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCTION'
+    note: 'Ambiente de checkout forçado para SANDBOX pelo código'
   });
 });
 
-// Endpoint para criar preferência de pagamento
+// Endpoint para criar preferência de pagamento (SANDBOX FORÇADO)
 app.post('/create_preference', async (req, res) => {
   try {
     const { title, quantity, price, uid } = req.body;
-    
-    // Validar UID
+
     if (!uid) {
-      return res.status(400).json({ 
-        error: 'UID é obrigatório' 
-      });
+      return res.status(400).json({ error: 'UID é obrigatório' });
     }
 
     const preference = new Preference(client);
@@ -50,50 +47,46 @@ app.post('/create_preference', async (req, res) => {
       ],
       payment_methods: {
         excluded_payment_methods: [
-          { id: "bolbradesco" },
-          { id: "debelo" }
+          { id: 'bolbradesco' },
+          { id: 'debelo' },
         ],
         excluded_payment_types: [
-          { id: "ticket" },
-          { id: "debit_card" }
-        ]
+          { id: 'ticket' },
+          { id: 'debit_card' },
+        ],
       },
       back_urls: {
         success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
         failure: `${process.env.FRONTEND_URL}/failure?uid=${uid}`,
-        pending: `${process.env.FRONTEND_URL}/pending?uid=${uid}`
+        pending: `${process.env.FRONTEND_URL}/pending?uid=${uid}`,
       },
       auto_return: 'approved',
       notification_url: `${process.env.BACKEND_URL}/webhook`,
       statement_descriptor: 'TESTE PROSPERIDADE',
-      external_reference: external_reference,
-      metadata: {
-        uid: uid,
-        source: 'teste-prosperidade'
-      }
+      external_reference,
+      metadata: { uid, source: 'teste-prosperidade' },
     };
 
     const result = await preference.create({ body });
 
-    // Detectar automaticamente se é sandbox ou produção baseado no access token
-    const isSandbox = process.env.MERCADOPAGO_ACCESS_TOKEN.startsWith('TEST-');
-    const init_point = isSandbox ? result.sandbox_init_point : result.init_point;
+    // SANDBOX FORÇADO — SEM DETECÇÃO AUTOMÁTICA
+    const init_point = result.sandbox_init_point;
 
     console.log(`Preferência criada para UID: ${uid}, External Reference: ${external_reference}`);
-    console.log(`Ambiente: ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}`);
+    console.log(`Ambiente: SANDBOX (FORÇADO)`);
     console.log(`Init point: ${init_point}`);
 
-    res.json({
+    return res.json({
       id: result.id,
-      init_point: init_point,
-      external_reference: external_reference,
-      environment: isSandbox ? 'sandbox' : 'production'
+      init_point,                // sempre sandbox
+      external_reference,
+      environment: 'sandbox',    // explícito
     });
   } catch (error) {
     console.error('Erro ao criar preferência:', error);
-    res.status(500).json({ 
+    return res.status(500).json({
       error: 'Erro ao criar preferência de pagamento',
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -102,40 +95,36 @@ app.post('/create_preference', async (req, res) => {
 app.get('/payment-status/:external_reference', async (req, res) => {
   try {
     const { external_reference } = req.params;
-    
     if (!external_reference) {
       return res.status(400).json({ error: 'External reference é obrigatório' });
     }
 
     const payment = new Payment(client);
-    const searchResult = await payment.search({
-      external_reference: external_reference
-    });
+    const searchResult = await payment.search({ external_reference });
 
     console.log(`Consultando status para: ${external_reference}`);
 
     if (!searchResult.results || searchResult.results.length === 0) {
       return res.json({
         status: 'pending',
-        message: 'Pagamento não encontrado ou ainda não processado'
+        message: 'Pagamento não encontrado ou ainda não processado',
       });
     }
 
     const latestPayment = searchResult.results[0];
-    
-    res.json({
+
+    return res.json({
       status: latestPayment.status,
       payment_id: latestPayment.id,
-      external_reference: external_reference,
+      external_reference,
       payment_method: latestPayment.payment_method_id,
-      status_detail: latestPayment.status_detail
+      status_detail: latestPayment.status_detail,
     });
-
   } catch (error) {
     console.error('Erro ao consultar status:', error);
-    res.status(500).json({ 
+    return res.status(500).json({
       error: 'Erro ao consultar status do pagamento',
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -145,7 +134,7 @@ function validateWebhookSignature(req, res, next) {
   try {
     const signature = req.headers['x-signature'];
     const requestId = req.headers['x-request-id'];
-    
+
     if (!signature || !requestId) {
       console.log('Headers de assinatura ausentes');
       return res.status(400).send('Headers de assinatura ausentes');
@@ -153,8 +142,8 @@ function validateWebhookSignature(req, res, next) {
 
     const signatureParts = signature.split(',');
     let ts, hash;
-    
-    signatureParts.forEach(part => {
+
+    signatureParts.forEach((part) => {
       const [key, value] = part.split('=');
       if (key === 'ts') ts = value;
       if (key === 'v1') hash = value;
@@ -166,7 +155,7 @@ function validateWebhookSignature(req, res, next) {
     }
 
     const dataString = `id:${req.body.data?.id};request-id:${requestId};ts:${ts};`;
-    
+
     const expectedSignature = crypto
       .createHmac('sha256', process.env.MERCADOPAGO_PUBLIC_KEY)
       .update(dataString)
@@ -177,10 +166,10 @@ function validateWebhookSignature(req, res, next) {
       return res.status(401).send('Assinatura inválida');
     }
 
-    next();
+    return next();
   } catch (error) {
     console.error('Erro na validação da assinatura:', error);
-    res.status(500).send('Erro interno');
+    return res.status(500).send('Erro interno');
   }
 }
 
@@ -193,7 +182,6 @@ app.post('/webhook', validateWebhookSignature, async (req, res) => {
 
     if (type === 'payment') {
       const paymentId = data.id;
-
       try {
         const payment = new Payment(client);
         const paymentDetails = await payment.get({ id: paymentId });
@@ -204,28 +192,28 @@ app.post('/webhook', validateWebhookSignature, async (req, res) => {
 
         if (paymentDetails.status === 'approved') {
           console.log(`✅ Pagamento aprovado para UID: ${paymentDetails.metadata?.uid}`);
+          // TODO: ações para aprovado
         }
-
       } catch (paymentError) {
         console.error('Erro ao buscar detalhes do pagamento:', paymentError);
       }
     }
 
-    res.status(200).send('OK');
+    return res.status(200).send('OK');
   } catch (error) {
     console.error('Erro no webhook:', error);
-    res.status(500).send('Error');
+    return res.status(500).send('Error');
   }
 });
 
 const PORT = process.env.PORT || 3001;
-const BACKEND_URL = process.env.RAILWAY_PUBLIC_DOMAIN 
-  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` 
+const BACKEND_URL = process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
   : `http://localhost:${PORT}`;
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Backend URL: ${BACKEND_URL}`);
   console.log(`Webhook URL: ${BACKEND_URL}/webhook`);
-  console.log(`Ambiente: ${process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-') ? 'SANDBOX' : 'PRODUÇÃO'}`);
+  console.log(`Ambiente: SANDBOX (FORÇADO NO INIT_POINT)`);
 });
