@@ -85,35 +85,41 @@ app.post('/create_preference', async (req, res) => {
 // Webhook
 app.post('/webhook', async (req, res) => {
   try {
-    const { type, data, action, live_mode } = req.body || {};
+    const { type, data, action, live_mode, id } = req.body || {};
 
     console.log('Webhook recebido:', {
       type,
       data,
       action,
       live_mode,
+      id,
       timestamp: new Date().toISOString(),
     });
 
-    if (type === 'payment' && data?.id) {
-      // Detectar se é um webhook de teste
-      const isTestWebhook = data.id === '123456' || live_mode === false;
+    if (type === 'payment') {
+      // ID do pagamento pode estar em data.id ou id
+      const paymentId = data?.id || id;
       
-      if (isTestWebhook) {
-        console.log('✅ Webhook de teste recebido com sucesso - não consultando API');
-      } else {
-        // Apenas consultar a API se não for um teste
-        try {
-          const payment = new Payment(client);
-          const paymentDetails = await payment.get({ id: data.id });
+      if (paymentId) {
+        // Detectar se é um webhook de teste
+        const isTestWebhook = paymentId === '123456' || live_mode === false || !live_mode;
+        
+        if (isTestWebhook) {
+          console.log(`✅ Webhook de teste recebido - ID: ${paymentId} - não consultando API`);
+        } else {
+          // Apenas consultar a API se não for um teste
+          try {
+            const payment = new Payment(client);
+            const paymentDetails = await payment.get({ id: paymentId });
 
-          console.log(`Pagamento ${data.id} - Status: ${paymentDetails.status}`);
-          
-          if (paymentDetails.status === 'approved') {
-            console.log(`✅ Pagamento aprovado: ${paymentDetails.external_reference}`);
+            console.log(`Pagamento ${paymentId} - Status: ${paymentDetails.status}`);
+            
+            if (paymentDetails.status === 'approved') {
+              console.log(`✅ Pagamento aprovado: ${paymentDetails.external_reference}`);
+            }
+          } catch (paymentError) {
+            console.error('Erro webhook payment:', paymentError.message);
           }
-        } catch (paymentError) {
-          console.error('Erro webhook payment:', paymentError.message);
         }
       }
     }
@@ -130,5 +136,4 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Webhook URL: ${process.env.BACKEND_URL}/webhook`);
-  console.log('Ambiente: SANDBOX com Client ID/Secret configurado');
-});
+  console.log('Ambiente: SANDBOX com Client ID/Secret configur
