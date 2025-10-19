@@ -48,7 +48,7 @@ app.post('/create_preference', async (req, res) => {
       ],
       payment_methods: {
         excluded_payment_methods: [{ id: 'bolbradesco' }, { id: 'debelo' }],
-        excluded_payment_types: [{ id: 'ticket' }, { id: 'debit_card' }],
+        excluded_payment_types: [{ id: 'ticket' }, { id: 'debit_card' }, { id: 'account_money' }],
       },
       back_urls: {
         success: 'https://backmercadopro.vercel.app/success',
