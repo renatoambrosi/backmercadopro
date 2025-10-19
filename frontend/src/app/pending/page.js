@@ -6,7 +6,6 @@ import { useEffect, useState, Suspense } from 'react';
 function PendingContent() {
   const searchParams = useSearchParams();
   const [uid, setUid] = useState('');
-  const [externalReference, setExternalReference] = useState('');
   const [checkCount, setCheckCount] = useState(0);
   const [status, setStatus] = useState('pending');
   const [isChecking, setIsChecking] = useState(false);
@@ -15,13 +14,9 @@ function PendingContent() {
     const uidParam = searchParams.get('uid');
     if (uidParam) {
       setUid(uidParam);
-      // Gerar external reference baseado no UID (padrão do sistema)
-      // Como não temos o timestamp exato, vamos tentar buscar pagamentos do UID
-      setExternalReference(uidParam);
     }
   }, [searchParams]);
 
-  // Função para verificar status do pagamento
   const checkPaymentStatus = async () => {
     if (!uid) return;
     
@@ -29,8 +24,8 @@ function PendingContent() {
     try {
       // Tentar diferentes formatos de external_reference
       const possibleReferences = [
-        uid, // UID simples
-        `${uid}-${Date.now()}`, // Com timestamp atual (aproximação)
+        uid,
+        `${uid}-${Date.now()}`
       ];
 
       for (const ref of possibleReferences) {
@@ -71,15 +66,12 @@ function PendingContent() {
   useEffect(() => {
     if (!uid) return;
 
-    // Verificar imediatamente
     checkPaymentStatus();
 
-    // Configurar polling
     const interval = setInterval(() => {
       checkPaymentStatus();
     }, 3000);
 
-    // Limpar depois de 5 minutos (100 verificações)
     const timeout = setTimeout(() => {
       clearInterval(interval);
       console.log('Timeout atingido para verificação de pagamento');
