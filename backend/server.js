@@ -157,7 +157,7 @@ function validateWebhookSignature(req, res, next) {
     const dataString = `id:${req.body.data?.id};request-id:${requestId};ts:${ts};`;
 
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.MERCADOPAGO_PUBLIC_KEY)
+      .createHmac('sha256', process.env.MERCADOPAGO_ACCESS_TOKEN)
       .update(dataString)
       .digest('hex');
 
