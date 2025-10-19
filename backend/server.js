@@ -18,26 +18,24 @@ const client = new MercadoPagoConfig({
 app.use(cors());
 app.use(express.json());
 
-// Health check
 app.get('/', (req, res) => {
   res.json({
     status: 'Backend rodando!',
     timestamp: new Date().toISOString(),
-    note: 'Ambiente de checkout forçado para SANDBOX pelo código',
+    note: 'Ambiente SANDBOX com Client ID/Secret',
   });
 });
 
-// Endpoint para criar preferência de pagamento (SANDBOX FORÇADO)
+// Endpoint para criar preferência
 app.post('/create_preference', async (req, res) => {
   try {
     const { title, quantity, price, uid } = req.body;
 
-    if (!uid) {
-      return res.status(400).json({ error: 'UID é obrigatório' });
-    }
+    // UID opcional - não obrigatório
+    const safeUid = uid || 'AUTO-GENERATED';
+    const external_reference = `${safeUid}-${Date.now()}`;
 
     const preference = new Preference(client);
-    const external_reference = `${uid}-${Date.now()}`;
 
     const body = {
       items: [
@@ -53,42 +51,38 @@ app.post('/create_preference', async (req, res) => {
         excluded_payment_types: [{ id: 'ticket' }, { id: 'debit_card' }],
       },
       back_urls: {
-        success: `https://www.suellenseragi.com.br/resultado1?uid=${uid}`,
-        failure: `${process.env.FRONTEND_URL}/failure?uid=${uid}`,
-        pending: `${process.env.FRONTEND_URL}/pending?uid=${uid}`,
+        success: 'https://backmercadopro.vercel.app/success',
+        failure: 'https://backmercadopro.vercel.app/failure',
+        pending: 'https://backmercadopro.vercel.app/pending',
       },
       auto_return: 'approved',
       notification_url: `${process.env.BACKEND_URL}/webhook`,
-      statement_descriptor: 'TESTE PROSPERIDADE',
+      statement_descriptor: 'TESTE MP',
       external_reference,
-      metadata: { uid, source: 'teste-prosperidade' },
+      metadata: { uid: safeUid, source: 'teste-checkout' },
     };
 
     const result = await preference.create({ body });
-
-    // SANDBOX FORÇADO
     const init_point = result.sandbox_init_point;
 
-    console.log(`Preferência criada para UID: ${uid}, External Reference: ${external_reference}`);
-    console.log('Ambiente: SANDBOX (FORÇADO)');
+    console.log(`Preferência criada: ${external_reference}`);
     console.log(`Init point: ${init_point}`);
 
     return res.json({
       id: result.id,
       init_point,
       external_reference,
-      environment: 'sandbox',
     });
   } catch (error) {
     console.error('Erro ao criar preferência:', error);
     return res.status(500).json({
-      error: 'Erro ao criar preferência de pagamento',
+      error: 'Erro ao criar preferência',
       details: error.message,
     });
   }
 });
 
-// Webhook SEM validação
+// Webhook
 app.post('/webhook', async (req, res) => {
   try {
     const { type, data, action } = req.body || {};
@@ -101,38 +95,31 @@ app.post('/webhook', async (req, res) => {
     });
 
     if (type === 'payment' && data?.id) {
-      const paymentId = data.id;
       try {
         const payment = new Payment(client);
-        const paymentDetails = await payment.get({ id: paymentId });
+        const paymentDetails = await payment.get({ id: data.id });
 
-        console.log(`Pagamento ${paymentId} - Status: ${paymentDetails.status}`);
-        console.log(`External Reference: ${paymentDetails.external_reference}`);
-        console.log(`UID extraído: ${paymentDetails.metadata?.uid}`);
-
+        console.log(`Pagamento ${data.id} - Status: ${paymentDetails.status}`);
+        
         if (paymentDetails.status === 'approved') {
-          console.log(`✅ Pagamento aprovado para UID: ${paymentDetails.metadata?.uid}`);
+          console.log(`✅ Pagamento aprovado: ${paymentDetails.external_reference}`);
         }
       } catch (paymentError) {
-        console.error('Erro ao buscar detalhes do pagamento:', paymentError?.message || paymentError);
+        console.error('Erro webhook payment:', paymentError.message);
       }
     }
 
     return res.status(200).send('OK');
   } catch (error) {
-    console.error('Erro no webhook:', error?.message || error);
+    console.error('Erro webhook:', error.message);
     return res.status(500).send('Error');
   }
 });
 
 const PORT = process.env.PORT || 3001;
-const BACKEND_URL = process.env.RAILWAY_PUBLIC_DOMAIN
-  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-  : `http://localhost:${PORT}`;
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`Backend URL: ${BACKEND_URL}`);
-  console.log(`Webhook URL: ${BACKEND_URL}/webhook`);
-  console.log('Ambiente: SANDBOX (FORÇADO NO INIT_POINT)');
+  console.log(`Webhook URL: ${process.env.BACKEND_URL}/webhook`);
+  console.log('Ambiente: SANDBOX com Client ID/Secret configurado');
 });
