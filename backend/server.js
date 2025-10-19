@@ -104,45 +104,6 @@ app.get('/payment-status/:external_reference', async (req, res) => {
 
     console.log(`Consultando status para: ${external_reference}`);
 
-    if (!searchResult.results || searchResult.results.length === 0) {
-      return res.json({
-        status: 'pending',
-        message: 'Pagamento não encontrado ou ainda não processado',
-      });
-    }
-
-    const latestPayment = searchResult.results[0];
-
-    return res.json({
-      status: latestPayment.status,
-      payment_id: latestPayment.id,
-      external_reference,
-      payment_method: latestPayment.payment_method_id,
-      status_detail: latestPayment.status_detail,
-    });
-  } catch (error) {
-    console.error('Erro ao consultar status:', error);
-    return res.status(500).json({
-      error: 'Erro ao consultar status do pagamento',
-      details: error.message,
-    });
-  }
-});
-
-// Middleware para validar webhook signature
-function validateWebhookSignature(req, res, next) {
-  try {
-    const signature = req.headers['x-signature'];
-    const requestId = req.headers['x-request-id'];
-
-    if (!signature || !requestId) {
-      console.log('Headers de assinatura ausentes');
-      return res.status(400).send('Headers de assinatura ausentes');
-    }
-
-    const signatureParts = signature.split(',');
-    let ts, hash;
-
     signatureParts.forEach((part) => {
       const [key, value] = part.split('=');
       if (key === 'ts') ts = value;
