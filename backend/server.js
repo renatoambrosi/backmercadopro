@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'Backend rodando!',
     timestamp: new Date().toISOString(),
-    note: 'Ambiente SANDBOX com Client ID/Secret',
+    note: 'Ambiente PRODUCAO com Client ID/Secret',
   });
 });
 
@@ -63,7 +63,7 @@ app.post('/create_preference', async (req, res) => {
     };
 
     const result = await preference.create({ body });
-    const init_point = result.sandbox_init_point;
+    const init_point = result.init_point;
 
     console.log(`Preferencia criada: ${external_reference}`);
     console.log(`Init point: ${init_point}`);
@@ -143,5 +143,5 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Webhook URL: ${process.env.BACKEND_URL}/webhook`);
-  console.log('Ambiente: SANDBOX com Client ID/Secret configurado');
+  console.log('Ambiente: PRODUCAO com Client ID/Secret configurado');
 });
