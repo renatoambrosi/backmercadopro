@@ -82,6 +82,70 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
+// NOVO ENDPOINT: Consultar status do pagamento para sistema de polling
+app.get('/payment-status/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    
+    // Validar se paymentId foi fornecido
+    if (!paymentId) {
+      return res.status(400).json({
+        error: 'Payment ID é obrigatório'
+      });
+    }
+
+    console.log(`Consultando status do pagamento: ${paymentId}`);
+
+    const payment = new Payment(client);
+    const paymentDetails = await payment.get({ id: paymentId });
+
+    // Extrair UID do external_reference ou metadata
+    let uid = null;
+    if (paymentDetails.external_reference) {
+      // Format: "UID-timestamp" - extrair apenas o UID
+      const parts = paymentDetails.external_reference.split('-');
+      uid = parts[0];
+    }
+    
+    // Fallback para metadata se UID não estiver no external_reference
+    if (!uid && paymentDetails.metadata && paymentDetails.metadata.uid) {
+      uid = paymentDetails.metadata.uid;
+    }
+
+    const response = {
+      status: paymentDetails.status,
+      status_detail: paymentDetails.status_detail,
+      external_reference: paymentDetails.external_reference,
+      uid: uid,
+      payment_method_id: paymentDetails.payment_method_id,
+      payment_type_id: paymentDetails.payment_type_id,
+      transaction_amount: paymentDetails.transaction_amount,
+      date_created: paymentDetails.date_created,
+      date_approved: paymentDetails.date_approved
+    };
+
+    console.log(`Status do pagamento ${paymentId}:`, response);
+
+    return res.json(response);
+
+  } catch (error) {
+    console.error('Erro ao consultar status do pagamento:', error);
+    
+    // Se o pagamento não existe, retornar erro específico
+    if (error.message && error.message.includes('404')) {
+      return res.status(404).json({
+        error: 'Pagamento não encontrado',
+        paymentId: req.params.paymentId
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Erro ao consultar status do pagamento',
+      details: error.message
+    });
+  }
+});
+
 // Webhook GET - para teste IPN
 app.get('/webhook', (req, res) => {
   const { topic, id } = req.query;
