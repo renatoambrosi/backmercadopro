@@ -38,12 +38,15 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key', 'X-Signature', 'X-Request-Id']
 }));
 
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
 // Middleware para logging de requests
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   console.log(`📡 ${timestamp} - ${req.method} ${req.path} - IP: ${req.ip}`);
   
-  if (req.path === '/api/webhook') {
+  if (req.path === '/api/webhook' || req.path === '/webhook') {
     console.log('🔔 WEBHOOK REQUEST:', {
       headers: req.headers,
       body: req.body
@@ -52,9 +55,6 @@ app.use((req, res, next) => {
   
   next();
 });
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
 
 // Middleware para capturar IP real
 app.use((req, res, next) => {
@@ -135,7 +135,57 @@ app.get('/api/mp-health', async (req, res) => {
   }
 });
 
-// Rotas de pagamento
+// ============================================
+// WEBHOOK DIRETO PARA MERCADO PAGO (SEM /api)
+// ============================================
+
+app.post('/webhook', async (req, res) => {
+  const timestamp = new Date().toISOString();
+
+  try {
+    console.log(`🔔 WEBHOOK MP DIRETO [${timestamp}]`);
+    console.log('📦 Payload recebido:', JSON.stringify(req.body || {}, null, 2));
+
+    // Responde 200 rapidamente (requisito do MP)
+    res.status(200).json({
+      received: true,
+      source: 'direct_webhook_mp',
+      timestamp
+    });
+
+    const body = req.body || {};
+    const action = body.action;
+    const type = body.type;
+    const id = body?.data?.id;
+
+    console.log('🧭 Contexto do webhook:', {
+      action,
+      type,
+      id,
+      live_mode: body.live_mode,
+      api_version: body.api_version
+    });
+
+    // Observação: processamento completo permanece na rota /api/webhook (routes/payments.js)
+    // Aqui garantimos compatibilidade com a URL direta configurada no painel MP.
+
+  } catch (error) {
+    console.error('❌ Erro no webhook direto MP:', {
+      message: error?.message,
+      stack: error?.stack?.substring(0, 500)
+    });
+
+    if (!res.headersSent) {
+      res.status(200).json({
+        received: true,
+        error: 'internal',
+        timestamp
+      });
+    }
+  }
+});
+
+// Rotas de pagamento (mantidas com prefixo /api)
 app.use('/api', paymentRoutes);
 
 app.get('/api/environment', (req, res) => {
