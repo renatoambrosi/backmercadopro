@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta http-equiv="Permissions-Policy" content="fullscreen=(), camera=(), microphone=(), geolocation=()">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <title>Checkout - Teste de Prosperidade</title>
     
     <!-- DEVICE FINGERPRINT PRIMEIRO -->
@@ -14,158 +16,493 @@
     <script src="https://sdk.mercadopago.com/js/v2"></script>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5; min-height: 100vh; padding: 20px;
-            display: flex; align-items: center; justify-content: center;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .checkout-container {
-            max-width: 500px; width: 100%; background: white; border-radius: 8px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.1); overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         .checkout-header {
-            padding: 24px 32px 20px; background: white; border-bottom: 1px solid #f0f0f0;
+            padding: 24px 32px 20px;
+            background: white;
+            border-bottom: 1px solid #f0f0f0;
         }
 
-        .checkout-header h2 { font-size: 20px; font-weight: 500; color: #333; margin-bottom: 8px; }
-        .amount-display { font-size: 24px; font-weight: 600; color: #00a650; margin-bottom: 12px; }
+        .checkout-header h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .amount-display {
+            font-size: 24px;
+            font-weight: 600;
+            color: #00a650;
+            margin-bottom: 12px;
+        }
+
         .completion-message {
-            font-size: 14px; color: #666; background: #f8f9fa; padding: 12px 16px;
-            border-radius: 6px; border: 1px solid #e9ecef; text-align: center; margin-top: 8px;
+            font-size: 14px;
+            color: #666;
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+            margin-top: 8px;
         }
-        .completion-message .icon { margin-right: 6px; }
 
-        /* USER INFO DISPLAY */
+        .completion-message .icon {
+            margin-right: 6px;
+        }
+
+        /* USER INFO FROM URL */
         .user-info {
-            font-size: 12px; color: #666; background: #e6f7ff; padding: 8px 16px;
-            border-radius: 4px; margin-top: 8px; border: 1px solid #91d5ff;
+            font-size: 12px;
+            color: #666;
+            background: #e6f7ff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-top: 8px;
+            border: 1px solid #91d5ff;
         }
-        .user-info .uid { font-weight: 500; color: #1890ff; }
-        .user-info .email { color: #52c41a; }
 
-        .payment-container { padding: 0; background: white; }
-        #paymentBrick_container { min-height: 400px; }
-
-        .loading-state { padding: 60px 32px; text-align: center; color: #666; }
-        .spinner {
-            width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #009ee3;
-            border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;
+        .user-info .uid {
+            font-weight: 500;
+            color: #1890ff;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .user-info .email {
+            color: #52c41a;
+        }
 
         .mp-logo-footer {
-            padding: 12px 32px 8px; text-align: center; background: white; border-top: 1px solid #f0f0f0;
+            padding: 12px 32px 8px;
+            text-align: center;
+            background: white;
+            border-top: 1px solid #f0f0f0;
         }
-        .mp-logo-img { height: 64px; margin-bottom: 8px; opacity: 0.9; }
-        .mp-security-text { font-size: 12px; color: #666; font-weight: 500; }
 
-        /* STATUS SCREENS */
+        .mp-logo-img {
+            height: 64px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .mp-security-text {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .payment-container {
+            padding: 0;
+            background: white;
+        }
+
+        #paymentBrick_container {
+            min-height: 400px;
+        }
+
+        .loading-state {
+            padding: 60px 32px;
+            text-align: center;
+            color: #666;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #009ee3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .status-screen {
-            display: none; background: #f5f5f5; min-height: 100vh; width: 100%;
-            position: fixed; top: 0; left: 0; z-index: 1000; padding: 20px; overflow-y: auto;
+            display: none;
+            background: #f5f5f5;
+            min-height: 100vh;
+            max-height: 100vh;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
         }
-        .status-container { max-width: 600px; margin: 0 auto; padding-top: 40px; }
+
+        .status-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding-top: 40px;
+            min-height: calc(100vh - 40px);
+        }
+
         .status-header {
-            border-radius: 20px 20px 0 0; padding: 60px 0 20px; text-align: center;
-            display: flex; flex-direction: column; align-items: center;
+            border-radius: 20px 20px 0 0;
+            padding: 60px 0 20px;
+            text-align: center;
+            position: relative;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
-        .status-header.success { background: linear-gradient(135deg, #52c41a, #389e0d); }
-        .status-header.processing { background: linear-gradient(135deg, #fa8c16, #d46b08); }
-        .status-header.error { background: linear-gradient(135deg, #ff4d4f, #cf1322); }
+
+        .status-header.success {
+            background: linear-gradient(135deg, #52c41a, #389e0d);
+        }
+
+        .status-header.processing {
+            background: linear-gradient(135deg, #fa8c16, #d46b08);
+        }
+
+        .status-header.error {
+            background: linear-gradient(135deg, #ff4d4f, #cf1322);
+        }
+
         .status-icon {
-            width: 80px; height: 80px; border-radius: 50%; background: rgba(255, 255, 255, 0.2);
-            border: 3px solid white; display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 36px; font-weight: bold;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            position: relative;
+            bottom: auto;
+            margin-top: -20px;
         }
+
         .status-content {
-            background: white; border-radius: 0 0 20px 20px; padding: 60px 40px 120px;
+            background: white;
+            border-radius: 0 0 20px 20px;
+            padding: 60px 40px 120px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+            max-height: none;
+            overflow-y: auto;
         }
-        .status-title { font-size: 28px; font-weight: 600; color: #333; text-align: center; margin-bottom: 20px; }
-        .status-subtitle { font-size: 16px; color: #666; text-align: center; margin-bottom: 30px; line-height: 1.5; }
+
+        .status-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .status-subtitle {
+            font-size: 16px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
         .payment-details {
-            background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #e9ecef;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
         }
-        .detail-row { display: flex; align-items: center; margin-bottom: 16px; }
-        .detail-row:last-child { margin-bottom: 0; }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
         .detail-icon {
-            width: 40px; height: 40px; border-radius: 50%; background: #fff3cd;
-            display: flex; align-items: center; justify-content: center; margin-right: 16px; flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #fff3cd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
         }
-        .detail-content { flex: 1; }
-        .detail-title { font-size: 16px; font-weight: 500; color: #333; margin-bottom: 4px; }
-        .detail-subtitle { font-size: 14px; color: #666; }
+
+        .detail-content {
+            flex: 1;
+        }
+
+        .detail-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .detail-subtitle {
+            font-size: 14px;
+            color: #666;
+        }
 
         .countdown-section {
-            text-align: center; margin: 30px 0; padding: 20px; background: #e6f7ff;
-            border-radius: 8px; border: 1px solid #91d5ff;
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #e6f7ff;
+            border-radius: 8px;
+            border: 1px solid #91d5ff;
         }
-        .countdown-text { font-size: 16px; color: #1890ff; margin-bottom: 8px; }
-        .countdown-timer { font-size: 24px; font-weight: 600; color: #1890ff; }
+
+        .countdown-text {
+            font-size: 16px;
+            color: #1890ff;
+            margin-bottom: 8px;
+        }
+
+        .countdown-timer {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1890ff;
+        }
 
         .action-button {
-            width: 100%; max-width: 300px; padding: 16px; background: #1890ff; color: white;
-            border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer;
-            transition: background 0.3s ease; margin: 16px auto; display: block; margin-bottom: 60px;
+            width: 100%;
+            max-width: 300px;
+            padding: 16px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin: 16px auto;
+            display: block;
+            margin-bottom: 60px;
         }
-        .action-button:hover { background: #40a9ff; }
-        .action-button:disabled { background: #d9d9d9; cursor: not-allowed; }
+
+        .action-button:hover {
+            background: #40a9ff;
+        }
+
+        .action-button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
 
         .back-link {
-            display: block; text-align: center; color: #1890ff; text-decoration: none; font-size: 16px; padding: 12px;
+            display: block;
+            text-align: center;
+            color: #1890ff;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 12px;
         }
-        .back-link:hover { text-decoration: underline; }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
 
         .pix-info {
-            background: #f0f9ff; border: 1px solid #b3d4fc; border-radius: 8px;
-            padding: 32px; margin-top: 20px; min-height: 520px;
+            background: #f0f9ff;
+            border: 1px solid #b3d4fc;
+            border-radius: 8px;
+            padding: 32px;
+            margin-top: 20px;
+            max-height: none;
+            overflow-y: auto;
+            min-height: 520px;
         }
-        .pix-qr { text-align: center; margin: 20px 0; }
-        .pix-qr img { max-width: 200px; border: 1px solid #ddd; border-radius: 8px; }
+
+        .pix-qr {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .pix-qr img {
+            max-width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
         .pix-code {
-            background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 12px;
-            font-family: monospace; font-size: 12px; word-break: break-all; margin: 10px 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
         }
+
         .copy-button {
-            background: #52c41a; color: white; border: none; padding: 8px 16px;
-            border-radius: 4px; cursor: pointer; font-size: 14px;
+            background: #52c41a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
         }
-        .copy-button:hover { background: #389e0d; }
+
+        .copy-button:hover {
+            background: #389e0d;
+        }
 
         .status-indicator {
-            position: fixed; top: 20px; right: 20px; background: #52c41a; color: white;
-            padding: 8px 12px; border-radius: 20px; font-size: 12px; z-index: 1001; display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #52c41a;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1001;
+            display: none;
         }
-        .status-indicator.checking { background: #fa8c16; }
-        .status-indicator.error { background: #ff4d4f; }
+
+        .status-indicator.checking {
+            background: #fa8c16;
+        }
+
+        .status-indicator.error {
+            background: #ff4d4f;
+        }
 
         .warning-box {
-            background: #fff2e8; border: 1px solid #ffbb96; border-radius: 8px;
-            padding: 16px; margin: 20px 0; text-align: center;
+            background: #fff2e8;
+            border: 1px solid #ffbb96;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: center;
         }
-        .warning-box .warning-text { color: #d46b08; font-weight: 500; margin-bottom: 8px; }
-        .warning-box .warning-subtext { color: #666; font-size: 14px; }
+
+        .warning-box .warning-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .warning-box .warning-text {
+            color: #d46b08;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .warning-box .warning-subtext {
+            color: #666;
+            font-size: 14px;
+        }
 
         @media (max-width: 600px) {
-            .checkout-container { margin: 0 16px; max-width: none; }
-            .checkout-header { padding: 20px 24px 12px; }
-            .status-container { padding-top: 20px; }
-            .status-content { padding: 60px 24px 24px; }
-            .status-title { font-size: 24px; }
-            .status-icon { width: 70px; height: 70px; font-size: 32px; }
-            .action-button { width: 90%; max-width: 280px; }
+            .checkout-container {
+                margin: 0 16px;
+                max-width: none;
+            }
+            
+            .checkout-header {
+                padding: 20px 24px 12px;
+            }
+
+            .mp-logo-footer {
+                padding: 3px 24px 14px;
+            }
+
+            .mp-logo-img {
+                height: 42px;
+                margin-bottom: 6px;
+            }
+            
+            .status-container {
+                padding-top: 20px;
+                min-height: calc(100vh - 20px);
+            }
+            
+            .status-content {
+                padding: 60px 24px 24px;
+            }
+            
+            .status-title {
+                font-size: 24px;
+            }
+            
+            .status-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 32px;
+            }
+            
+            .action-button {
+                margin: 12px auto;
+                padding: 14px;
+                font-size: 15px;
+                width: 90%;
+                max-width: 280px;
+                text-align: center;
+            }
+
+            .status-screen {
+                padding: 10px;
+            }
+            
+            .pix-info {
+                max-height: 40vh;
+            }
         }
 
-        .fade-out { opacity: 0; transform: translateY(-20px); }
-        .fade-in { opacity: 1; transform: translateY(0); }
+        .fade-out {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
-    <div id="statusIndicator" class="status-indicator">● Conectado</div>
+    <div id="statusIndicator" class="status-indicator">
+        ● Conectado
+    </div>
 
     <div id="checkoutSection" class="checkout-container">
         <div class="checkout-header">
@@ -175,7 +512,7 @@
                 <span class="icon">💡</span>
                 Complete o pagamento para acessar seu resultado personalizado
             </div>
-            <!-- EXIBIR DADOS CAPTURADOS DA URL -->
+            <!-- USER INFO FROM URL -->
             <div id="userInfo" class="user-info" style="display: none;">
                 <span class="uid">UID: <span id="displayUID"></span></span> | 
                 <span class="email">Email: <span id="displayEmail"></span></span>
@@ -193,7 +530,8 @@
 
         <div class="mp-logo-footer">
             <img src="https://raw.githubusercontent.com/renatoambrosi/mpfullbackfront/main/EXEMPLOS/quizfront-main/mercado_pago-logo.png" 
-                 alt="Mercado Pago" class="mp-logo-img">
+                 alt="Mercado Pago" 
+                 class="mp-logo-img">
             <div class="mp-security-text">Pagamento 100% seguro</div>
         </div>
     </div>
@@ -215,6 +553,7 @@
                             <div class="detail-subtitle">Teste de Prosperidade</div>
                         </div>
                     </div>
+                    
                     <div class="detail-row">
                         <div class="detail-icon">📋</div>
                         <div class="detail-content">
@@ -222,7 +561,7 @@
                             <div class="detail-subtitle" id="operationDate"></div>
                         </div>
                     </div>
-                    <!-- EXIBIR EMAIL REAL NO STATUS -->
+
                     <div class="detail-row">
                         <div class="detail-icon">📧</div>
                         <div class="detail-content">
@@ -233,6 +572,7 @@
                 </div>
 
                 <div id="pixWarning" class="warning-box" style="display: none;">
+                    <div class="warning-icon">⚠️</div>
                     <div class="warning-text">Pagamento não confirmado</div>
                     <div class="warning-subtext">Verificando automaticamente. Aguarde ou efetue o pagamento PIX.</div>
                 </div>
@@ -254,32 +594,41 @@
                     <div id="countdownTimer" class="countdown-timer">10</div>
                 </div>
 
-                <button id="resultButton" class="action-button">Ver Resultado do Teste Agora</button>
+                <button id="resultButton" class="action-button">
+                    Ver Resultado do Teste Agora
+                </button>
+                
                 <a href="https://mpfullfront.vercel.app" class="back-link">Voltar à página inicial</a>
             </div>
         </div>
     </div>
 
     <script>
-        // ============================================
-        // CAPTURA DE DADOS DA URL - EMAIL REAL
-        // ============================================
-        
+        // CONFIGURAÇÃO BASEADA NO EXEMPLO FUNCIONAL
         const BACKEND_URL = 'https://mpfullbackfront-production.up.railway.app';
         const PUBLIC_KEY = 'APP_USR-d46b1349-ce1d-4bea-b49d-8c5e5d7f82b6';
         
+        // CAPTURAR EMAIL/UID DA URL (NOVA FUNCIONALIDADE)
         const urlParams = new URLSearchParams(window.location.search);
         const tallyUID = urlParams.get('uid');
         const userEmail = urlParams.get('email');
         const userUID = tallyUID || 'checkout-' + Date.now();
         
-        console.log('🔗 URL completa:', window.location.href);
-        console.log('🎯 UID capturada:', tallyUID);
-        console.log('📧 Email capturado:', userEmail);
-        console.log('🆔 UID final:', userUID);
+        console.log('🔗 URL:', window.location.href);
+        console.log('🎯 UID:', tallyUID);
+        console.log('📧 Email:', userEmail);
         
-        // VALIDAR E EXIBIR DADOS CAPTURADOS
-        function validateAndDisplayUserData() {
+        // VALIDAR EMAIL
+        function isValidEmail(email) {
+            if (!email) return false;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        const finalEmail = isValidEmail(userEmail) ? userEmail : 'cliente@testeprospero.com.br';
+        
+        // EXIBIR DADOS DA URL
+        function displayUserData() {
             const userInfoDiv = document.getElementById('userInfo');
             const displayUID = document.getElementById('displayUID');
             const displayEmail = document.getElementById('displayEmail');
@@ -288,40 +637,19 @@
                 displayUID.textContent = tallyUID || 'N/A';
                 displayEmail.textContent = userEmail || 'N/A';
                 userInfoDiv.style.display = 'block';
-                
-                console.log('✅ Dados do usuário exibidos na interface');
-            } else {
-                console.log('⚠️ Nenhum dado de usuário na URL');
             }
         }
         
-        // VALIDAR EMAIL FORMAT
-        function isValidEmail(email) {
-            if (!email) return false;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
-        
-        // OBTER EMAIL FINAL PARA PAGAMENTO
-        function getFinalEmail() {
-            if (isValidEmail(userEmail)) {
-                console.log('✅ Usando email real da URL:', userEmail);
-                return userEmail;
-            } else {
-                console.log('⚠️ Email inválido ou não fornecido, usando genérico');
-                return 'cliente@testeprospero.com.br';
-            }
-        }
-        
-        const finalEmail = getFinalEmail();
-        
-        // Inicializar MP
-        const mp = new MercadoPago(PUBLIC_KEY, { locale: 'pt' });
+        // INICIALIZAR MP (IGUAL AO EXEMPLO)
+        const mp = new MercadoPago(PUBLIC_KEY, { 
+            locale: 'pt',
+            sandbox: false
+        });
         const bricksBuilder = mp.bricks();
 
-        console.log('🚀 MP inicializado, aguardando device fingerprint...');
+        console.log('🚀 MP inicializado - aguardando device fingerprint...');
         
-        // AGUARDAR DEVICE FINGERPRINT
+        // DEVICE FINGERPRINT (NOVA FUNCIONALIDADE ANTIFRAUDE)
         function waitForDeviceFingerprint() {
             return new Promise((resolve) => {
                 const maxAttempts = 50;
@@ -330,12 +658,12 @@
                 const checkDevice = () => {
                     attempts++;
                     if (window.MP_DEVICE_SESSION_ID) {
-                        console.log('🛡️ Device fingerprint OK:', window.MP_DEVICE_SESSION_ID.substring(0, 20) + '...');
+                        console.log('🛡️ Device fingerprint:', window.MP_DEVICE_SESSION_ID.substring(0, 20) + '...');
                         resolve(window.MP_DEVICE_SESSION_ID);
                     } else if (attempts < maxAttempts) {
                         setTimeout(checkDevice, 100);
                     } else {
-                        console.warn('⚠️ Device fingerprint timeout - continuando sem ele');
+                        console.warn('⚠️ Device fingerprint timeout');
                         resolve(null);
                     }
                 };
@@ -343,25 +671,36 @@
             });
         }
 
-        // SISTEMA DE POLLING
+        // POLLING SYSTEM (IGUAL AO EXEMPLO)
         let pollingInterval = null;
         let currentPaymentId = null;
         let isPaymentConfirmed = false;
 
         function startPolling(paymentId) {
             currentPaymentId = paymentId;
-            console.log('🔄 Iniciando polling:', paymentId);
+            isPaymentConfirmed = false;
+            console.log('🔄 Iniciando polling para payment:', paymentId);
+            
+            updateStatusIndicator('checking', 'Verificando...');
             
             pollingInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`${BACKEND_URL}/api/payment/${paymentId}`);
                     const data = await response.json();
                     
+                    console.log('📊 Status polling:', data.status);
+                    
                     if (data.status === 'approved') {
-                        console.log('✅ PIX APROVADO!');
+                        console.log('✅ PIX APROVADO via polling!');
                         isPaymentConfirmed = true;
                         stopPolling();
+                        updateStatusIndicator('success', 'Aprovado!');
                         showStatusScreen('success', data);
+                    } else if (data.status === 'rejected' || data.status === 'cancelled') {
+                        console.log('❌ PIX rejeitado via polling');
+                        stopPolling();
+                        updateStatusIndicator('error', 'Erro');
+                        showStatusScreen('error', data);
                     }
                 } catch (error) {
                     console.error('❌ Erro no polling:', error);
@@ -373,6 +712,7 @@
             if (pollingInterval) {
                 clearInterval(pollingInterval);
                 pollingInterval = null;
+                console.log('⏹️ Polling interrompido');
             }
         }
 
@@ -381,9 +721,15 @@
             indicator.className = `status-indicator ${type}`;
             indicator.textContent = `● ${message}`;
             indicator.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 3000);
+            }
         }
 
-        // STATUS SCREENS
+        // STATUS SCREENS (IGUAL AO EXEMPLO)
         function showStatusScreen(type = 'success', paymentData = {}) {
             const checkoutSection = document.getElementById('checkoutSection');
             const statusScreen = document.getElementById('statusScreen');
@@ -393,66 +739,112 @@
             const statusSubtitle = document.getElementById('statusSubtitle');
             const countdownSection = document.getElementById('countdownSection');
             const resultButton = document.getElementById('resultButton');
+            const operationDate = document.getElementById('operationDate');
             const paymentId = document.getElementById('paymentId');
             const statusEmail = document.getElementById('statusEmail');
             const pixSection = document.getElementById('pixSection');
+            const pixWarning = document.getElementById('pixWarning');
 
-            // EXIBIR EMAIL REAL NO STATUS
+            // Data/hora
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR', { 
+                day: 'numeric', 
+                month: 'long' 
+            }) + ' às ' + now.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            }) + ' h.';
+            operationDate.textContent = dateStr;
+
+            // Email real
             statusEmail.textContent = finalEmail;
 
-            if (paymentData.id) paymentId.textContent = paymentData.id;
-
-            checkoutSection.style.display = 'none';
-                
-            if (type === 'success') {
-                statusHeader.className = 'status-header success';
-                statusIcon.textContent = '✓';
-                statusTitle.textContent = 'Seu pagamento foi aprovado';
-                statusSubtitle.textContent = `Parabéns! Confirmação enviada para ${finalEmail}. Acesse seu resultado personalizado.`;
-                countdownSection.style.display = 'block';
-                pixSection.style.display = 'none';
-                resultButton.onclick = () => redirectToResult();
-                startCountdown();
-            } else if (type === 'pix') {
-                statusHeader.className = 'status-header processing';
-                statusIcon.textContent = '⏳';
-                statusTitle.textContent = 'Pague com PIX';
-                statusSubtitle.textContent = `Escaneie o QR Code ou copie o código PIX. Confirmação será enviada para ${finalEmail}.`;
-                countdownSection.style.display = 'none';
-                
-                if (paymentData.qr_code_base64) {
-                    const qrImg = document.getElementById('pixQRCode');
-                    qrImg.src = `data:image/png;base64,${paymentData.qr_code_base64}`;
-                    qrImg.style.display = 'block';
-                }
-                
-                if (paymentData.qr_code) {
-                    document.getElementById('pixCode').textContent = paymentData.qr_code;
-                    window.pixCodeToCopy = paymentData.qr_code;
-                }
-                
-                pixSection.style.display = 'block';
-                resultButton.textContent = 'Já paguei - Ver resultado';
-                resultButton.onclick = () => redirectToResult();
-                
-                if (paymentData.id) startPolling(paymentData.id);
-            } else if (type === 'processing') {
-                statusHeader.className = 'status-header processing';
-                statusIcon.textContent = '⏳';
-                statusTitle.textContent = 'Processando pagamento';
-                statusSubtitle.textContent = `Aguarde... Confirmação será enviada para ${finalEmail}.`;
-                resultButton.textContent = 'Aguarde...';
-                resultButton.disabled = true;
-            } else if (type === 'error') {
-                statusHeader.className = 'status-header error';
-                statusIcon.textContent = '❌';
-                statusTitle.textContent = 'Erro no pagamento';
-                statusSubtitle.textContent = 'Tente novamente.';
-                resultButton.textContent = 'Tentar Novamente';
-                resultButton.onclick = () => location.reload();
+            if (paymentData.id) {
+                paymentId.textContent = paymentData.id;
             }
 
-            statusScreen.style.display = 'block';
+            checkoutSection.style.transition = 'all 0.3s ease';
+            checkoutSection.classList.add('fade-out');
+
+            setTimeout(() => {
+                checkoutSection.style.display = 'none';
+                
+                if (type === 'success') {
+                    stopPolling();
+                    isPaymentConfirmed = true;
+                    statusHeader.className = 'status-header success';
+                    statusIcon.textContent = '✓';
+                    statusTitle.textContent = 'Seu pagamento foi aprovado';
+                    statusSubtitle.textContent = `Parabéns! Confirmação enviada para ${finalEmail}. Agora você pode acessar seu resultado personalizado do Teste de Prosperidade.`;
+                    resultButton.textContent = 'Ver Resultado do Teste Agora';
+                    countdownSection.style.display = 'block';
+                    pixSection.style.display = 'none';
+                    pixWarning.style.display = 'none';
+                    
+                    startCountdown();
+                    
+                } else if (type === 'pix') {
+                    statusHeader.className = 'status-header processing';
+                    statusIcon.textContent = '⏳';
+                    statusTitle.textContent = 'Pague com PIX';
+                    statusSubtitle.textContent = `Escaneie o QR Code ou copie o código PIX para concluir seu pagamento. Confirmação será enviada para ${finalEmail}.`;
+                    resultButton.textContent = 'Já paguei - Ver meu resultado';
+                    countdownSection.style.display = 'none';
+                    pixWarning.style.display = 'none';
+                    
+                    if (paymentData.qr_code_base64) {
+                        const qrImg = document.getElementById('pixQRCode');
+                        qrImg.src = `data:image/png;base64,${paymentData.qr_code_base64}`;
+                        qrImg.style.display = 'block';
+                    }
+                    
+                    if (paymentData.qr_code) {
+                        document.getElementById('pixCode').textContent = paymentData.qr_code;
+                        window.pixCodeToCopy = paymentData.qr_code;
+                    }
+                    
+                    pixSection.style.display = 'block';
+                    
+                    if (paymentData.id) {
+                        startPolling(paymentData.id);
+                    }
+                    
+                } else if (type === 'processing') {
+                    statusHeader.className = 'status-header processing';
+                    statusIcon.textContent = '⏳';
+                    statusTitle.textContent = 'Processando seu pagamento';
+                    statusSubtitle.textContent = 'Aguarde enquanto confirmamos seu pagamento...';
+                    countdownSection.style.display = 'none';
+                    pixSection.style.display = 'none';
+                    pixWarning.style.display = 'none';
+                    resultButton.textContent = 'Aguarde...';
+                    resultButton.disabled = true;
+                    
+                } else if (type === 'error') {
+                    stopPolling();
+                    statusHeader.className = 'status-header error';
+                    statusIcon.textContent = '❌';
+                    statusTitle.textContent = 'Erro no pagamento';
+                    statusSubtitle.textContent = 'Não foi possível processar seu pagamento. Tente novamente com outro método de pagamento.';
+                    countdownSection.style.display = 'none';
+                    pixSection.style.display = 'none';
+                    pixWarning.style.display = 'none';
+                    resultButton.textContent = 'Tentar Novamente';
+                    resultButton.disabled = false;
+                    resultButton.onclick = () => goBack();
+                }
+
+                if (type === 'success') {
+                    resultButton.onclick = () => redirectToResult();
+                    resultButton.disabled = false;
+                } else if (type === 'pix') {
+                    resultButton.onclick = () => validatePixBeforeRedirect();
+                    resultButton.disabled = false;
+                }
+
+                statusScreen.style.display = 'block';
+                statusScreen.classList.add('fade-in');
+            }, 300);
         }
 
         function startCountdown() {
@@ -462,127 +854,225 @@
             const interval = setInterval(() => {
                 seconds--;
                 timer.textContent = seconds;
+                
                 if (seconds <= 0) {
                     clearInterval(interval);
                     redirectToResult();
                 }
             }, 1000);
+
+            window.countdownInterval = interval;
+        }
+
+        async function validatePixBeforeRedirect() {
+            if (isPaymentConfirmed) {
+                redirectToResult();
+                return;
+            }
+
+            if (!currentPaymentId) {
+                redirectToResult();
+                return;
+            }
+
+            try {
+                updateStatusIndicator('checking', 'Verificando pagamento...');
+                const response = await fetch(`${BACKEND_URL}/api/payment/${currentPaymentId}`);
+                const data = await response.json();
+                
+                if (data.status === 'approved') {
+                    console.log('✅ PIX confirmado! Redirecionando...');
+                    isPaymentConfirmed = true;
+                    updateStatusIndicator('success', 'Aprovado!');
+                    redirectToResult();
+                } else {
+                    console.log('⚠️ PIX ainda não pago');
+                    showPixWarning();
+                }
+            } catch (error) {
+                console.error('❌ Erro ao verificar pagamento:', error);
+                showPixWarning();
+            }
+        }
+
+        function showPixWarning() {
+            const warningBox = document.getElementById('pixWarning');
+            const resultButton = document.getElementById('resultButton');
+            
+            warningBox.style.display = 'block';
+            resultButton.textContent = 'Verificar Pagamento Novamente';
+            
+            updateStatusIndicator('error', 'Pagamento pendente');
+            
+            setTimeout(() => {
+                warningBox.style.display = 'none';
+                resultButton.textContent = 'Já paguei - Ver meu resultado';
+            }, 5000);
         }
 
         function redirectToResult() {
+            if (window.countdownInterval) {
+                clearInterval(window.countdownInterval);
+            }
             stopPolling();
+            
             const finalUID = tallyUID || userUID;
-            console.log('🎯 Redirecionando:', finalUID);
+            console.log('🎯 Redirecionando com UID:', finalUID);
+            console.log('🔗 URL de destino:', `https://suellenseragi.com.br/resultado1?uid=${finalUID}`);
+            
             window.location.href = `https://suellenseragi.com.br/resultado1?uid=${finalUID}`;
+        }
+
+        function goBack() {
+            const checkoutSection = document.getElementById('checkoutSection');
+            const statusScreen = document.getElementById('statusScreen');
+            
+            stopPolling();
+            isPaymentConfirmed = false;
+            
+            if (window.countdownInterval) {
+                clearInterval(window.countdownInterval);
+            }
+            
+            statusScreen.style.display = 'none';
+            statusScreen.classList.remove('fade-in');
+            
+            checkoutSection.style.display = 'block';
+            checkoutSection.classList.remove('fade-out');
+            checkoutSection.classList.add('fade-in');
+            
+            updateStatusIndicator('success', 'Reconectado');
         }
 
         function copyPixCode() {
             if (window.pixCodeToCopy) {
                 navigator.clipboard.writeText(window.pixCodeToCopy).then(() => {
                     const button = document.querySelector('.copy-button');
+                    const originalText = button.textContent;
                     button.textContent = 'Copiado!';
-                    setTimeout(() => button.textContent = 'Copiar código', 2000);
+                    button.style.background = '#389e0d';
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '#52c41a';
+                    }, 2000);
                 });
             }
         }
 
-        // PAYMENT BRICK COM EMAIL REAL
-        const renderPaymentBrick = async () => {
+        // PAYMENT BRICK BASEADO NO EXEMPLO + MODIFICAÇÕES
+        const renderPaymentBrick = async (bricksBuilder) => {
             try {
-                console.log('🚀 Criando Payment Brick com email real...');
-                console.log('📧 Email que será usado:', finalEmail);
+                console.log('🚀 Criando Payment Brick baseado no exemplo funcional...');
                 
+                // AGUARDAR DEVICE FINGERPRINT
                 const deviceId = await waitForDeviceFingerprint();
+                console.log('✅ Device fingerprint pronto para envio');
                 
+                // CONFIGURAÇÃO IGUAL AO EXEMPLO
                 const settings = {
                     initialization: {
                         amount: 19,
-                        // PRE-PREENCHER COM EMAIL REAL DA URL
                         payer: {
-                            email: finalEmail
-                        }
+                            firstName: 'Cliente',
+                            lastName: 'Teste',
+                            email: finalEmail // EMAIL REAL DA URL
+                        },
                     },
                     customization: {
+                        visual: {
+                            style: {
+                                theme: "flat",
+                            },
+                        },
                         paymentMethods: {
-                            creditCard: "all",
-                            debitCard: "all", 
                             bankTransfer: "all",
-                            maxInstallments: 1
-                        }
+                            maxInstallments: 12
+                        },
+                        hideFormTitle: true
                     },
                     callbacks: {
                         onReady: () => {
-                            console.log('✅ Payment Brick carregado com email:', finalEmail);
+                            console.log('✅ Payment Brick carregado');
                             updateStatusIndicator('success', 'Carregado');
                             
                             const loadingElement = document.querySelector('.loading-state');
-                            if (loadingElement) loadingElement.style.display = 'none';
+                            if (loadingElement) {
+                                loadingElement.style.display = 'none';
+                            }
                         },
                         onSubmit: ({ selectedPaymentMethod, formData }) => {
-                            console.log('💳 Processando pagamento com email real');
-                            console.log('📧 Email do formData:', formData.payer?.email);
-                            console.log('📧 Email final usado:', finalEmail);
+                            console.log('💳 Processando pagamento baseado no exemplo');
+                            console.log('📊 Método:', selectedPaymentMethod);
+                            console.log('🔒 Device ID:', deviceId);
+                            console.log('📧 Email final:', finalEmail);
+                            console.log('🎯 UID:', userUID);
                             
                             showStatusScreen('processing');
+                            updateStatusIndicator('checking', 'Processando...');
 
                             return new Promise((resolve, reject) => {
-                                // GARANTIR QUE O EMAIL REAL SEJA USADO
+                                // PAYLOAD BASEADO NO EXEMPLO + NOVAS FUNCIONALIDADES
                                 const paymentPayload = {
-                                    transaction_amount: 19,
-                                    description: 'Teste de Prosperidade - Resultado Personalizado',
-                                    payment_method_id: formData.payment_method_id,
-                                    payer: {
-                                        email: finalEmail // ← SEMPRE USAR EMAIL REAL DA URL
-                                    },
+                                    ...formData,
                                     uid: userUID,
-                                    device_id: deviceId
+                                    device_id: deviceId, // ANTIFRAUDE
+                                    description: 'Teste de Prosperidade - Resultado Personalizado',
+                                    transaction_amount: 19,
+                                    // GARANTIR EMAIL REAL
+                                    payer: {
+                                        ...formData.payer,
+                                        email: finalEmail
+                                    }
                                 };
 
-                                // Adicionar campos específicos
-                                if (formData.token) paymentPayload.token = formData.token;
-                                if (formData.installments) paymentPayload.installments = formData.installments;
-                                if (formData.issuer_id) paymentPayload.issuer_id = formData.issuer_id;
-                                if (formData.payer?.identification) {
-                                    paymentPayload.payer.identification = formData.payer.identification;
-                                }
-
-                                console.log('📤 PAYLOAD COM EMAIL REAL:', paymentPayload);
+                                console.log('📤 Enviando dados baseados no exemplo:', paymentPayload);
 
                                 fetch(`${BACKEND_URL}/api/process_payment`, {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/json'
+                                        'Content-Type': 'application/json',
+                                        'X-Idempotency-Key': `${userUID}-${Date.now()}`
                                     },
-                                    body: JSON.stringify(paymentPayload)
+                                    body: JSON.stringify(paymentPayload),
                                 })
                                 .then(response => {
-                                    console.log('📥 Status:', response.status);
+                                    console.log('📥 Status da resposta:', response.status);
                                     if (!response.ok) {
                                         return response.json().then(err => {
-                                            throw new Error(`HTTP ${response.status}: ${err.message || err.error}`);
+                                            throw new Error(`HTTP ${response.status}: ${err.message || 'Erro desconhecido'}`);
                                         });
                                     }
                                     return response.json();
                                 })
                                 .then(result => {
-                                    console.log('✅ Resultado:', result);
+                                    console.log('✅ Resposta do backend:', result);
                                     
                                     if (result.status === 'approved') {
+                                        console.log('🎉 Pagamento APROVADO!');
+                                        isPaymentConfirmed = true;
+                                        updateStatusIndicator('success', 'Aprovado!');
                                         showStatusScreen('success', result);
                                         resolve();
                                     } else if (result.status === 'pending' && result.payment_method_id === 'pix') {
+                                        console.log('💰 PIX criado com sucesso');
+                                        updateStatusIndicator('checking', 'PIX criado');
                                         showStatusScreen('pix', result);
                                         resolve();
                                     } else if (result.status === 'pending') {
+                                        console.log('⏳ Pagamento pendente');
                                         showStatusScreen('processing', result);
                                         resolve();
                                     } else {
+                                        console.error('❌ Pagamento rejeitado:', result);
+                                        updateStatusIndicator('error', 'Rejeitado');
                                         showStatusScreen('error', result);
                                         reject();
                                     }
                                 })
                                 .catch(error => {
-                                    console.error('❌ Erro:', error);
+                                    console.error('❌ Erro no pagamento:', error);
+                                    updateStatusIndicator('error', 'Erro');
                                     showStatusScreen('error');
                                     reject();
                                 });
@@ -590,58 +1080,93 @@
                         },
                         onError: (error) => {
                             console.error('❌ Erro Payment Brick:', error);
-                        }
-                    }
+                            updateStatusIndicator('error', 'Erro no formulário');
+                            showStatusScreen('error');
+                        },
+                    },
                 };
 
-                await bricksBuilder.create("payment", "paymentBrick_container", settings);
-                console.log('✅ Payment Brick criado com email real:', finalEmail);
+                window.paymentBrickController = await bricksBuilder.create(
+                    "payment",
+                    "paymentBrick_container",
+                    settings
+                );
+                
+                console.log('✅ Payment Brick criado baseado no exemplo');
+                
+                setTimeout(() => {
+                    const loadingElement = document.querySelector('.loading-state');
+                    if (loadingElement) {
+                        loadingElement.style.display = 'none';
+                    }
+                }, 2000);
                 
             } catch (error) {
                 console.error('❌ Erro ao criar Payment Brick:', error);
+                updateStatusIndicator('error', 'Erro de inicialização');
+                
                 document.getElementById('paymentBrick_container').innerHTML = `
                     <div class="loading-state">
                         <p style="color: #ff4d4f;">Erro ao carregar pagamentos</p>
-                        <button onclick="location.reload()" 
-                                style="margin-top: 12px; padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            Recarregar
+                        <p style="font-size: 14px; color: #666;">Verifique sua conexão e recarregue a página</p>
+                        <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Recarregar Página
                         </button>
                     </div>
                 `;
             }
         };
 
-        // INICIALIZAÇÃO
-        async function testBackendConnection() {
-            try {
-                const response = await fetch(`${BACKEND_URL}/health`);
-                const data = await response.json();
-                return data.status === 'OK';
-            } catch (error) {
-                return false;
-            }
-        }
-
+        // INICIALIZAÇÃO (BASEADO NO EXEMPLO)
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Inicializando checkout com email real');
-            console.log('📧 Email final configurado:', finalEmail);
+            console.log('🚀 Inicializando checkout baseado no exemplo funcional');
+            console.log('📧 Email final:', finalEmail);
+            console.log('🎯 UID final:', userUID);
             
-            // EXIBIR DADOS CAPTURADOS NA INTERFACE
-            validateAndDisplayUserData();
+            // EXIBIR DADOS DA URL
+            displayUserData();
             
             testBackendConnection().then(isOnline => {
                 if (isOnline) {
-                    console.log('✅ Backend online');
+                    console.log('✅ Backend online - iniciando Payment Brick');
                     updateStatusIndicator('success', 'Conectado');
-                    renderPaymentBrick();
+                    renderPaymentBrick(bricksBuilder);
                 } else {
                     console.error('❌ Backend offline');
                     updateStatusIndicator('error', 'Offline');
+                    document.getElementById('paymentBrick_container').innerHTML = `
+                        <div class="loading-state">
+                            <p style="color: #ff4d4f;">Serviço temporariamente indisponível</p>
+                            <p style="font-size: 14px; color: #666;">Tente novamente em alguns instantes</p>
+                            <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Tentar Novamente
+                            </button>
+                        </div>
+                    `;
                 }
             });
         });
 
-        window.addEventListener('beforeunload', () => stopPolling());
+        window.addEventListener('beforeunload', () => {
+            stopPolling();
+        });
+
+        async function testBackendConnection() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                console.log('🏥 Status do backend:', data);
+                return data.status === 'OK';
+            } catch (error) {
+                console.error('❌ Backend offline:', error);
+                return false;
+            }
+        }
     </script>
 </body>
 </html>
