@@ -286,6 +286,16 @@
                         amount: 19,
                         payer: { email: finalEmail }
                     },
+                    customization: {
+                        paymentMethods: {
+                            creditCard: "all",
+                            ticket: ["pix"],
+                            debitCard: false,
+                            bankTransfer: false,
+                            mercadoPago: false,
+                            atm: false
+                        }
+                    },
                     callbacks: {
                         onReady: () => {
                             console.log('Payment Brick carregado');
