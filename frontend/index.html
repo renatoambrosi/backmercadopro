@@ -39,6 +39,14 @@
         }
         .completion-message .icon { margin-right: 6px; }
 
+        /* USER INFO DISPLAY */
+        .user-info {
+            font-size: 12px; color: #666; background: #e6f7ff; padding: 8px 16px;
+            border-radius: 4px; margin-top: 8px; border: 1px solid #91d5ff;
+        }
+        .user-info .uid { font-weight: 500; color: #1890ff; }
+        .user-info .email { color: #52c41a; }
+
         .payment-container { padding: 0; background: white; }
         #paymentBrick_container { min-height: 400px; }
 
@@ -167,6 +175,11 @@
                 <span class="icon">💡</span>
                 Complete o pagamento para acessar seu resultado personalizado
             </div>
+            <!-- EXIBIR DADOS CAPTURADOS DA URL -->
+            <div id="userInfo" class="user-info" style="display: none;">
+                <span class="uid">UID: <span id="displayUID"></span></span> | 
+                <span class="email">Email: <span id="displayEmail"></span></span>
+            </div>
         </div>
 
         <div class="payment-container">
@@ -209,6 +222,14 @@
                             <div class="detail-subtitle" id="operationDate"></div>
                         </div>
                     </div>
+                    <!-- EXIBIR EMAIL REAL NO STATUS -->
+                    <div class="detail-row">
+                        <div class="detail-icon">📧</div>
+                        <div class="detail-content">
+                            <div class="detail-title">Email: <span id="statusEmail"></span></div>
+                            <div class="detail-subtitle">Confirmação enviada</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="pixWarning" class="warning-box" style="display: none;">
@@ -240,17 +261,59 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO CORRIGIDA
+        // ============================================
+        // CAPTURA DE DADOS DA URL - EMAIL REAL
+        // ============================================
+        
         const BACKEND_URL = 'https://mpfullbackfront-production.up.railway.app';
         const PUBLIC_KEY = 'APP_USR-d46b1349-ce1d-4bea-b49d-8c5e5d7f82b6';
         
         const urlParams = new URLSearchParams(window.location.search);
         const tallyUID = urlParams.get('uid');
+        const userEmail = urlParams.get('email');
         const userUID = tallyUID || 'checkout-' + Date.now();
         
-        console.log('🎯 UID:', userUID);
-        console.log('🔑 Public Key:', PUBLIC_KEY);
-        console.log('🌐 Backend:', BACKEND_URL);
+        console.log('🔗 URL completa:', window.location.href);
+        console.log('🎯 UID capturada:', tallyUID);
+        console.log('📧 Email capturado:', userEmail);
+        console.log('🆔 UID final:', userUID);
+        
+        // VALIDAR E EXIBIR DADOS CAPTURADOS
+        function validateAndDisplayUserData() {
+            const userInfoDiv = document.getElementById('userInfo');
+            const displayUID = document.getElementById('displayUID');
+            const displayEmail = document.getElementById('displayEmail');
+            
+            if (tallyUID || userEmail) {
+                displayUID.textContent = tallyUID || 'N/A';
+                displayEmail.textContent = userEmail || 'N/A';
+                userInfoDiv.style.display = 'block';
+                
+                console.log('✅ Dados do usuário exibidos na interface');
+            } else {
+                console.log('⚠️ Nenhum dado de usuário na URL');
+            }
+        }
+        
+        // VALIDAR EMAIL FORMAT
+        function isValidEmail(email) {
+            if (!email) return false;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        // OBTER EMAIL FINAL PARA PAGAMENTO
+        function getFinalEmail() {
+            if (isValidEmail(userEmail)) {
+                console.log('✅ Usando email real da URL:', userEmail);
+                return userEmail;
+            } else {
+                console.log('⚠️ Email inválido ou não fornecido, usando genérico');
+                return 'cliente@testeprospero.com.br';
+            }
+        }
+        
+        const finalEmail = getFinalEmail();
         
         // Inicializar MP
         const mp = new MercadoPago(PUBLIC_KEY, { locale: 'pt' });
@@ -331,7 +394,11 @@
             const countdownSection = document.getElementById('countdownSection');
             const resultButton = document.getElementById('resultButton');
             const paymentId = document.getElementById('paymentId');
+            const statusEmail = document.getElementById('statusEmail');
             const pixSection = document.getElementById('pixSection');
+
+            // EXIBIR EMAIL REAL NO STATUS
+            statusEmail.textContent = finalEmail;
 
             if (paymentData.id) paymentId.textContent = paymentData.id;
 
@@ -341,7 +408,7 @@
                 statusHeader.className = 'status-header success';
                 statusIcon.textContent = '✓';
                 statusTitle.textContent = 'Seu pagamento foi aprovado';
-                statusSubtitle.textContent = 'Parabéns! Agora você pode acessar seu resultado personalizado.';
+                statusSubtitle.textContent = `Parabéns! Confirmação enviada para ${finalEmail}. Acesse seu resultado personalizado.`;
                 countdownSection.style.display = 'block';
                 pixSection.style.display = 'none';
                 resultButton.onclick = () => redirectToResult();
@@ -350,7 +417,7 @@
                 statusHeader.className = 'status-header processing';
                 statusIcon.textContent = '⏳';
                 statusTitle.textContent = 'Pague com PIX';
-                statusSubtitle.textContent = 'Escaneie o QR Code ou copie o código PIX.';
+                statusSubtitle.textContent = `Escaneie o QR Code ou copie o código PIX. Confirmação será enviada para ${finalEmail}.`;
                 countdownSection.style.display = 'none';
                 
                 if (paymentData.qr_code_base64) {
@@ -373,7 +440,7 @@
                 statusHeader.className = 'status-header processing';
                 statusIcon.textContent = '⏳';
                 statusTitle.textContent = 'Processando pagamento';
-                statusSubtitle.textContent = 'Aguarde...';
+                statusSubtitle.textContent = `Aguarde... Confirmação será enviada para ${finalEmail}.`;
                 resultButton.textContent = 'Aguarde...';
                 resultButton.disabled = true;
             } else if (type === 'error') {
@@ -419,16 +486,21 @@
             }
         }
 
-        // PAYMENT BRICK CORRIGIDO
+        // PAYMENT BRICK COM EMAIL REAL
         const renderPaymentBrick = async () => {
             try {
-                console.log('🚀 Criando Payment Brick...');
+                console.log('🚀 Criando Payment Brick com email real...');
+                console.log('📧 Email que será usado:', finalEmail);
                 
                 const deviceId = await waitForDeviceFingerprint();
                 
                 const settings = {
                     initialization: {
-                        amount: 19
+                        amount: 19,
+                        // PRE-PREENCHER COM EMAIL REAL DA URL
+                        payer: {
+                            email: finalEmail
+                        }
                     },
                     customization: {
                         paymentMethods: {
@@ -440,32 +512,33 @@
                     },
                     callbacks: {
                         onReady: () => {
-                            console.log('✅ Payment Brick carregado');
+                            console.log('✅ Payment Brick carregado com email:', finalEmail);
                             updateStatusIndicator('success', 'Carregado');
                             
                             const loadingElement = document.querySelector('.loading-state');
                             if (loadingElement) loadingElement.style.display = 'none';
                         },
                         onSubmit: ({ selectedPaymentMethod, formData }) => {
-                            console.log('💳 Processando pagamento');
-                            console.log('📊 FormData original:', formData);
+                            console.log('💳 Processando pagamento com email real');
+                            console.log('📧 Email do formData:', formData.payer?.email);
+                            console.log('📧 Email final usado:', finalEmail);
                             
                             showStatusScreen('processing');
 
                             return new Promise((resolve, reject) => {
-                                // ESTRUTURA CORRETA PARA MERCADO PAGO
+                                // GARANTIR QUE O EMAIL REAL SEJA USADO
                                 const paymentPayload = {
                                     transaction_amount: 19,
                                     description: 'Teste de Prosperidade - Resultado Personalizado',
                                     payment_method_id: formData.payment_method_id,
                                     payer: {
-                                        email: formData.payer?.email || 'cliente@teste.com.br'
+                                        email: finalEmail // ← SEMPRE USAR EMAIL REAL DA URL
                                     },
                                     uid: userUID,
                                     device_id: deviceId
                                 };
 
-                                // Adicionar campos específicos por método de pagamento
+                                // Adicionar campos específicos
                                 if (formData.token) paymentPayload.token = formData.token;
                                 if (formData.installments) paymentPayload.installments = formData.installments;
                                 if (formData.issuer_id) paymentPayload.issuer_id = formData.issuer_id;
@@ -473,7 +546,7 @@
                                     paymentPayload.payer.identification = formData.payer.identification;
                                 }
 
-                                console.log('📤 Enviando payload CORRETO:', paymentPayload);
+                                console.log('📤 PAYLOAD COM EMAIL REAL:', paymentPayload);
 
                                 fetch(`${BACKEND_URL}/api/process_payment`, {
                                     method: 'POST',
@@ -522,7 +595,7 @@
                 };
 
                 await bricksBuilder.create("payment", "paymentBrick_container", settings);
-                console.log('✅ Payment Brick criado com sucesso');
+                console.log('✅ Payment Brick criado com email real:', finalEmail);
                 
             } catch (error) {
                 console.error('❌ Erro ao criar Payment Brick:', error);
@@ -550,7 +623,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Inicializando checkout');
+            console.log('🚀 Inicializando checkout com email real');
+            console.log('📧 Email final configurado:', finalEmail);
+            
+            // EXIBIR DADOS CAPTURADOS NA INTERFACE
+            validateAndDisplayUserData();
             
             testBackendConnection().then(isOnline => {
                 if (isOnline) {
