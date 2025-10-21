@@ -305,20 +305,22 @@
                             console.error('Erro Payment Brick:', error);
                             alert('Erro ao carregar Payment Brick');
                         },
-                        onSubmit: ({ formData }) => {
-                            console.log('Processando pagamento...');
+                        onSubmit: ({ selectedPaymentMethod, formData }) => {
+                            console.log('💳 Dados originais do Brick:', formData);
                             
                             return new Promise((resolve, reject) => {
+                                // MAPEAR DADOS CORRETAMENTE PARA O BACKEND
                                 const payload = {
+                                    payment_method_id: formData.payment_method_id,
                                     transaction_amount: 19,
                                     description: 'Teste de Prosperidade - Resultado Personalizado',
-                                    payment_method_id: formData.payment_method_id,
-                                    payer: { email: finalEmail },
-                                    uid: userUID,
-                                    device_id: deviceId
+                                    payer: {
+                                        email: finalEmail
+                                    },
+                                    uid: userUID
                                 };
 
-                                // Campos condicionais
+                                // Adicionar campos condicionais para cartão
                                 if (formData.token) payload.token = formData.token;
                                 if (formData.installments) payload.installments = formData.installments;
                                 if (formData.issuer_id) payload.issuer_id = formData.issuer_id;
@@ -326,7 +328,7 @@
                                     payload.payer.identification = formData.payer.identification;
                                 }
 
-                                console.log('Enviando payload:', payload);
+                                console.log('📤 Payload corrigido para backend:', payload);
 
                                 fetch(`${BACKEND_URL}/api/process_payment`, {
                                     method: 'POST',
@@ -340,7 +342,7 @@
                                     return response.json();
                                 })
                                 .then(result => {
-                                    console.log('Resultado:', result);
+                                    console.log('✅ Resultado:', result);
                                     
                                     if (result.status === 'approved') {
                                         showStatusScreen('success', result);
@@ -352,7 +354,7 @@
                                     resolve();
                                 })
                                 .catch(error => {
-                                    console.error('Erro no pagamento:', error);
+                                    console.error('❌ Erro no pagamento:', error);
                                     alert('Erro no pagamento: ' + (error.message || error.error || 'Tente novamente'));
                                     reject(error);
                                 });
