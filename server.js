@@ -27,7 +27,7 @@ app.use(helmet({
 
 app.use(cors({
   origin: [
-    'https://quizfronten.vercel.app',
+    'https://mpfullfront.vercel.app',
     'https://www.suellenseragi.com.br',
     'http://localhost:3000',
     'http://localhost:5173',
