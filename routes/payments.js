@@ -31,7 +31,6 @@ async function getIPGeodata(ip) {
     const cleanIP = (ip || '').split(',')[0].trim().replace('::ffff:', '');
     if (!cleanIP || cleanIP === '::1' || cleanIP === '127.0.0.1') return null;
 
-    // Serviço gratuito simples; pode ser ajustado se desejar outro provedor
     const { data } = await axios.get(`https://ipapi.co/${cleanIP}/json/`, { timeout: 2500 });
     if (data && !data.error) {
       return {
@@ -52,7 +51,6 @@ async function getIPGeodata(ip) {
 
 // ============================================
 // HELPER: montar additional_info com dados reais
-// - evita uso de genéricos, complementa com IP/localização
 // ============================================
 
 function buildAdditionalInfo({ formData, geo, uid }) {
@@ -112,15 +110,21 @@ function validatePaymentPayload(body) {
 }
 
 // ============================================
-// PROCESS PAYMENT
-// - Suporta PIX e Cartão
-// - Envia device_id (MP_DEVICE_SESSION_ID) via metadata
-// - Usa additional_info com dados reais do usuário
+// PROCESS PAYMENT (fix: aceitar email real e payload mínimo do front)
 // ============================================
 
 router.post('/process_payment', async (req, res) => {
   try {
     const body = req.body || {};
+
+    // Normalizar nomes vindos do Brick
+    if (!body.payment_method_id && body?.payment_method?.id) {
+      body.payment_method_id = body.payment_method.id;
+    }
+
+    if (!body.payer) body.payer = {};
+    if (!body.payer.email && body.email) body.payer.email = body.email;
+
     const errors = validatePaymentPayload(body);
     if (errors.length) {
       return res.status(400).json({ error: 'Dados inválidos', details: errors });
@@ -135,18 +139,15 @@ router.post('/process_payment', async (req, res) => {
       payer,
       issuer_id,
       uid,
-      device_id // ← MP_DEVICE_SESSION_ID vindo do front
+      device_id
     } = body;
 
     const paymentUID = uid || uuidv4();
 
-    // Geolocalização por IP (silenciosa)
     const geo = await getIPGeodata(req.clientIP);
 
-    // Additional info sem valores genéricos
     const additional_info = buildAdditionalInfo({ formData: body, geo, uid: paymentUID });
 
-    // Base comum
     const baseData = {
       transaction_amount: Number(transaction_amount),
       description: description || 'Teste de Prosperidade - Resultado Personalizado',
@@ -250,7 +251,6 @@ router.post('/process_payment', async (req, res) => {
 
 // ============================================
 // WEBHOOK
-// - dispara email + Pushover quando approved
 // ============================================
 
 router.post('/webhook', async (req, res) => {
@@ -266,10 +266,7 @@ router.post('/webhook', async (req, res) => {
           const customerEmail = details.metadata?.customer_email || details.payer?.email;
           const uid = details.external_reference;
 
-          // Email sucesso
           try { await emailSender.sendPixSuccessEmail(customerEmail, uid); } catch (e) {}
-
-          // Pushover
           try { await pushoverNotifier.sendPixApprovedNotification(details); } catch (e) {}
         }
       } catch (e) {}
