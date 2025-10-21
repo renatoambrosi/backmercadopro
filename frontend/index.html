@@ -572,7 +572,7 @@
                     Ver Resultado do Teste Agora
                 </button>
                 
-                <a href="https://quizfront.vercel.app" class="back-link">Voltar à página inicial</a>
+                <a href="https://mpfullfront.vercel.app" class="back-link">Voltar à página inicial</a>
             </div>
         </div>
     </div>
@@ -582,7 +582,7 @@
         // CONFIGURAÇÃO CONFORME DOCUMENTAÇÃO OFICIAL MP
         // ============================================
         
-        const BACKEND_URL = 'https://quizbacken-production.up.railway.app';
+        const BACKEND_URL = 'https://mpfullbackfront-production.up.railway.app';
         const PUBLIC_KEY = 'APP_USR-d46b1349-ce1d-4bea-b49d-8c5e5d7f82b6';
         
         // UID do Tally preservada
@@ -1150,6 +1150,13 @@
             console.log('🆔 UID final utilizada:', userUID);
             console.log('🌐 Backend:', BACKEND_URL);
             console.log('🔐 Ambiente: PRODUÇÃO OFICIAL MP');
+
+            // ✅ PRESERVAR UID NO LINK DE VOLTA
+            const backLink = document.querySelector('.back-link');
+            if (backLink && userUID) {
+                backLink.href = `https://quizfronten.vercel.app/?uid=${userUID}`;
+                console.log('🔗 Link de volta atualizado com UID:', backLink.href);
+            }
             
             testBackendConnection().then(isOnline => {
                 if (isOnline) {
