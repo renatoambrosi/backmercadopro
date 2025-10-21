@@ -288,9 +288,16 @@
                     },
                     callbacks: {
                         onReady: () => {
+                            console.log('Payment Brick carregado');
                             document.querySelector('.loading-state').style.display = 'none';
                         },
+                        onError: (error) => {
+                            console.error('Erro Payment Brick:', error);
+                            alert('Erro ao carregar Payment Brick');
+                        },
                         onSubmit: ({ formData }) => {
+                            console.log('Processando pagamento...');
+                            
                             return new Promise((resolve, reject) => {
                                 const payload = {
                                     transaction_amount: 19,
@@ -301,38 +308,52 @@
                                     device_id: deviceId
                                 };
 
+                                // Campos condicionais
                                 if (formData.token) payload.token = formData.token;
                                 if (formData.installments) payload.installments = formData.installments;
                                 if (formData.issuer_id) payload.issuer_id = formData.issuer_id;
-                                if (formData.payer?.identification) payload.payer.identification = formData.payer.identification;
+                                if (formData.payer?.identification) {
+                                    payload.payer.identification = formData.payer.identification;
+                                }
+
+                                console.log('Enviando payload:', payload);
 
                                 fetch(`${BACKEND_URL}/api/process_payment`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(payload)
                                 })
-                                .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+                                .then(response => {
+                                    if (!response.ok) {
+                                        return response.json().then(err => Promise.reject(err));
+                                    }
+                                    return response.json();
+                                })
                                 .then(result => {
+                                    console.log('Resultado:', result);
+                                    
                                     if (result.status === 'approved') {
                                         showStatusScreen('success', result);
                                     } else if (result.status === 'pending' && result.payment_method_id === 'pix') {
                                         showStatusScreen('pix', result);
+                                    } else {
+                                        alert('Status inesperado: ' + result.status);
                                     }
                                     resolve();
                                 })
                                 .catch(error => {
-                                    console.error('Erro:', error);
-                                    alert('Erro no pagamento: ' + (error.message || 'Tente novamente'));
-                                    reject();
+                                    console.error('Erro no pagamento:', error);
+                                    alert('Erro no pagamento: ' + (error.message || error.error || 'Tente novamente'));
+                                    reject(error);
                                 });
                             });
                         }
                     }
                 });
             } catch (error) {
-                console.error('Erro Payment Brick:', error);
+                console.error('Erro ao criar Payment Brick:', error);
                 document.getElementById('paymentBrick_container').innerHTML = 
-                    '<div class="loading-state"><p style="color: red;">Erro ao carregar</p><button onclick="location.reload()">Recarregar</button></div>';
+                    '<div class="loading-state"><p style="color: red;">Erro ao carregar pagamentos</p><button onclick="location.reload()">Recarregar</button></div>';
             }
         }
 
