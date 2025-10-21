@@ -8,13 +8,10 @@
     <meta http-equiv="Permissions-Policy" content="fullscreen=(), camera=(), microphone=(), geolocation=()">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <title>Checkout - Teste de Prosperidade</title>
-    
-    <!-- DEVICE FINGERPRINT PRIMEIRO -->
-    <script src="https://www.mercadopago.com/v2/security.js" view="checkout"></script>
-    
-    <!-- SDK OFICIAL MERCADO PAGO -->
+    <!-- SDK OFICIAL MERCADO PAGO CONFORME DOCUMENTAÇÃO -->
     <script src="https://sdk.mercadopago.com/js/v2"></script>
-    
+    <!-- DEVICE FINGERPRINT PARA ANTIFRAUDE -->
+    <script src="https://www.mercadopago.com/v2/security.js" view="checkout"></script>
     <style>
         * {
             margin: 0;
@@ -76,7 +73,6 @@
             margin-right: 6px;
         }
 
-        /* USER INFO FROM URL */
         .user-info {
             font-size: 12px;
             color: #666;
@@ -512,7 +508,6 @@
                 <span class="icon">💡</span>
                 Complete o pagamento para acessar seu resultado personalizado
             </div>
-            <!-- USER INFO FROM URL -->
             <div id="userInfo" class="user-info" style="display: none;">
                 <span class="uid">UID: <span id="displayUID"></span></span> | 
                 <span class="email">Email: <span id="displayEmail"></span></span>
@@ -604,21 +599,14 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO BASEADA NO EXEMPLO FUNCIONAL
         const BACKEND_URL = 'https://mpfullbackfront-production.up.railway.app';
         const PUBLIC_KEY = 'APP_USR-d46b1349-ce1d-4bea-b49d-8c5e5d7f82b6';
         
-        // CAPTURAR EMAIL/UID DA URL (NOVA FUNCIONALIDADE)
         const urlParams = new URLSearchParams(window.location.search);
         const tallyUID = urlParams.get('uid');
         const userEmail = urlParams.get('email');
         const userUID = tallyUID || 'checkout-' + Date.now();
         
-        console.log('🔗 URL:', window.location.href);
-        console.log('🎯 UID:', tallyUID);
-        console.log('📧 Email:', userEmail);
-        
-        // VALIDAR EMAIL
         function isValidEmail(email) {
             if (!email) return false;
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -627,7 +615,6 @@
         
         const finalEmail = isValidEmail(userEmail) ? userEmail : 'cliente@testeprospero.com.br';
         
-        // EXIBIR DADOS DA URL
         function displayUserData() {
             const userInfoDiv = document.getElementById('userInfo');
             const displayUID = document.getElementById('displayUID');
@@ -640,16 +627,12 @@
             }
         }
         
-        // INICIALIZAR MP (IGUAL AO EXEMPLO)
         const mp = new MercadoPago(PUBLIC_KEY, { 
             locale: 'pt',
             sandbox: false
         });
         const bricksBuilder = mp.bricks();
-
-        console.log('🚀 MP inicializado - aguardando device fingerprint...');
         
-        // DEVICE FINGERPRINT (NOVA FUNCIONALIDADE ANTIFRAUDE)
         function waitForDeviceFingerprint() {
             return new Promise((resolve) => {
                 const maxAttempts = 50;
@@ -658,12 +641,10 @@
                 const checkDevice = () => {
                     attempts++;
                     if (window.MP_DEVICE_SESSION_ID) {
-                        console.log('🛡️ Device fingerprint:', window.MP_DEVICE_SESSION_ID.substring(0, 20) + '...');
                         resolve(window.MP_DEVICE_SESSION_ID);
                     } else if (attempts < maxAttempts) {
                         setTimeout(checkDevice, 100);
                     } else {
-                        console.warn('⚠️ Device fingerprint timeout');
                         resolve(null);
                     }
                 };
@@ -671,7 +652,6 @@
             });
         }
 
-        // POLLING SYSTEM (IGUAL AO EXEMPLO)
         let pollingInterval = null;
         let currentPaymentId = null;
         let isPaymentConfirmed = false;
@@ -679,27 +659,18 @@
         function startPolling(paymentId) {
             currentPaymentId = paymentId;
             isPaymentConfirmed = false;
-            console.log('🔄 Iniciando polling para payment:', paymentId);
-            
-            updateStatusIndicator('checking', 'Verificando...');
             
             pollingInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`${BACKEND_URL}/api/payment/${paymentId}`);
                     const data = await response.json();
                     
-                    console.log('📊 Status polling:', data.status);
-                    
                     if (data.status === 'approved') {
-                        console.log('✅ PIX APROVADO via polling!');
                         isPaymentConfirmed = true;
                         stopPolling();
-                        updateStatusIndicator('success', 'Aprovado!');
                         showStatusScreen('success', data);
                     } else if (data.status === 'rejected' || data.status === 'cancelled') {
-                        console.log('❌ PIX rejeitado via polling');
                         stopPolling();
-                        updateStatusIndicator('error', 'Erro');
                         showStatusScreen('error', data);
                     }
                 } catch (error) {
@@ -712,7 +683,6 @@
             if (pollingInterval) {
                 clearInterval(pollingInterval);
                 pollingInterval = null;
-                console.log('⏹️ Polling interrompido');
             }
         }
 
@@ -721,15 +691,8 @@
             indicator.className = `status-indicator ${type}`;
             indicator.textContent = `● ${message}`;
             indicator.style.display = 'block';
-            
-            if (type === 'success') {
-                setTimeout(() => {
-                    indicator.style.display = 'none';
-                }, 3000);
-            }
         }
 
-        // STATUS SCREENS (IGUAL AO EXEMPLO)
         function showStatusScreen(type = 'success', paymentData = {}) {
             const checkoutSection = document.getElementById('checkoutSection');
             const statusScreen = document.getElementById('statusScreen');
@@ -745,7 +708,6 @@
             const pixSection = document.getElementById('pixSection');
             const pixWarning = document.getElementById('pixWarning');
 
-            // Data/hora
             const now = new Date();
             const dateStr = now.toLocaleDateString('pt-BR', { 
                 day: 'numeric', 
@@ -756,7 +718,6 @@
             }) + ' h.';
             operationDate.textContent = dateStr;
 
-            // Email real
             statusEmail.textContent = finalEmail;
 
             if (paymentData.id) {
@@ -775,7 +736,7 @@
                     statusHeader.className = 'status-header success';
                     statusIcon.textContent = '✓';
                     statusTitle.textContent = 'Seu pagamento foi aprovado';
-                    statusSubtitle.textContent = `Parabéns! Confirmação enviada para ${finalEmail}. Agora você pode acessar seu resultado personalizado do Teste de Prosperidade.`;
+                    statusSubtitle.textContent = 'Parabéns! Agora você pode acessar seu resultado personalizado do Teste de Prosperidade.';
                     resultButton.textContent = 'Ver Resultado do Teste Agora';
                     countdownSection.style.display = 'block';
                     pixSection.style.display = 'none';
@@ -787,7 +748,7 @@
                     statusHeader.className = 'status-header processing';
                     statusIcon.textContent = '⏳';
                     statusTitle.textContent = 'Pague com PIX';
-                    statusSubtitle.textContent = `Escaneie o QR Code ou copie o código PIX para concluir seu pagamento. Confirmação será enviada para ${finalEmail}.`;
+                    statusSubtitle.textContent = 'Escaneie o QR Code ou copie o código PIX para concluir seu pagamento.';
                     resultButton.textContent = 'Já paguei - Ver meu resultado';
                     countdownSection.style.display = 'none';
                     pixWarning.style.display = 'none';
@@ -876,21 +837,16 @@
             }
 
             try {
-                updateStatusIndicator('checking', 'Verificando pagamento...');
                 const response = await fetch(`${BACKEND_URL}/api/payment/${currentPaymentId}`);
                 const data = await response.json();
                 
                 if (data.status === 'approved') {
-                    console.log('✅ PIX confirmado! Redirecionando...');
                     isPaymentConfirmed = true;
-                    updateStatusIndicator('success', 'Aprovado!');
                     redirectToResult();
                 } else {
-                    console.log('⚠️ PIX ainda não pago');
                     showPixWarning();
                 }
             } catch (error) {
-                console.error('❌ Erro ao verificar pagamento:', error);
                 showPixWarning();
             }
         }
@@ -901,8 +857,6 @@
             
             warningBox.style.display = 'block';
             resultButton.textContent = 'Verificar Pagamento Novamente';
-            
-            updateStatusIndicator('error', 'Pagamento pendente');
             
             setTimeout(() => {
                 warningBox.style.display = 'none';
@@ -917,9 +871,6 @@
             stopPolling();
             
             const finalUID = tallyUID || userUID;
-            console.log('🎯 Redirecionando com UID:', finalUID);
-            console.log('🔗 URL de destino:', `https://suellenseragi.com.br/resultado1?uid=${finalUID}`);
-            
             window.location.href = `https://suellenseragi.com.br/resultado1?uid=${finalUID}`;
         }
 
@@ -940,8 +891,6 @@
             checkoutSection.style.display = 'block';
             checkoutSection.classList.remove('fade-out');
             checkoutSection.classList.add('fade-in');
-            
-            updateStatusIndicator('success', 'Reconectado');
         }
 
         function copyPixCode() {
@@ -960,23 +909,18 @@
             }
         }
 
-        // PAYMENT BRICK BASEADO NO EXEMPLO + MODIFICAÇÕES
         const renderPaymentBrick = async (bricksBuilder) => {
             try {
-                console.log('🚀 Criando Payment Brick baseado no exemplo funcional...');
-                
-                // AGUARDAR DEVICE FINGERPRINT
                 const deviceId = await waitForDeviceFingerprint();
-                console.log('✅ Device fingerprint pronto para envio');
                 
-                // CONFIGURAÇÃO IGUAL AO EXEMPLO
+                // CONFIGURAÇÃO MANTENDO PIX + CARTÃO
                 const settings = {
                     initialization: {
                         amount: 19,
                         payer: {
                             firstName: 'Cliente',
                             lastName: 'Teste',
-                            email: finalEmail // EMAIL REAL DA URL
+                            email: finalEmail
                         },
                     },
                     customization: {
@@ -986,6 +930,8 @@
                             },
                         },
                         paymentMethods: {
+                            creditCard: "all",
+                            debitCard: "all", 
                             bankTransfer: "all",
                             maxInstallments: 12
                         },
@@ -993,7 +939,6 @@
                     },
                     callbacks: {
                         onReady: () => {
-                            console.log('✅ Payment Brick carregado');
                             updateStatusIndicator('success', 'Carregado');
                             
                             const loadingElement = document.querySelector('.loading-state');
@@ -1002,31 +947,21 @@
                             }
                         },
                         onSubmit: ({ selectedPaymentMethod, formData }) => {
-                            console.log('💳 Processando pagamento baseado no exemplo');
-                            console.log('📊 Método:', selectedPaymentMethod);
-                            console.log('🔒 Device ID:', deviceId);
-                            console.log('📧 Email final:', finalEmail);
-                            console.log('🎯 UID:', userUID);
-                            
                             showStatusScreen('processing');
                             updateStatusIndicator('checking', 'Processando...');
 
                             return new Promise((resolve, reject) => {
-                                // PAYLOAD BASEADO NO EXEMPLO + NOVAS FUNCIONALIDADES
-                                const paymentPayload = {
+                                const enhancedPaymentData = {
                                     ...formData,
                                     uid: userUID,
-                                    device_id: deviceId, // ANTIFRAUDE
+                                    device_id: deviceId,
                                     description: 'Teste de Prosperidade - Resultado Personalizado',
                                     transaction_amount: 19,
-                                    // GARANTIR EMAIL REAL
                                     payer: {
                                         ...formData.payer,
                                         email: finalEmail
                                     }
                                 };
-
-                                console.log('📤 Enviando dados baseados no exemplo:', paymentPayload);
 
                                 fetch(`${BACKEND_URL}/api/process_payment`, {
                                     method: 'POST',
@@ -1034,10 +969,9 @@
                                         'Content-Type': 'application/json',
                                         'X-Idempotency-Key': `${userUID}-${Date.now()}`
                                     },
-                                    body: JSON.stringify(paymentPayload),
+                                    body: JSON.stringify(enhancedPaymentData),
                                 })
                                 .then(response => {
-                                    console.log('📥 Status da resposta:', response.status);
                                     if (!response.ok) {
                                         return response.json().then(err => {
                                             throw new Error(`HTTP ${response.status}: ${err.message || 'Erro desconhecido'}`);
@@ -1046,32 +980,25 @@
                                     return response.json();
                                 })
                                 .then(result => {
-                                    console.log('✅ Resposta do backend:', result);
-                                    
                                     if (result.status === 'approved') {
-                                        console.log('🎉 Pagamento APROVADO!');
                                         isPaymentConfirmed = true;
                                         updateStatusIndicator('success', 'Aprovado!');
                                         showStatusScreen('success', result);
                                         resolve();
                                     } else if (result.status === 'pending' && result.payment_method_id === 'pix') {
-                                        console.log('💰 PIX criado com sucesso');
                                         updateStatusIndicator('checking', 'PIX criado');
                                         showStatusScreen('pix', result);
                                         resolve();
                                     } else if (result.status === 'pending') {
-                                        console.log('⏳ Pagamento pendente');
                                         showStatusScreen('processing', result);
                                         resolve();
                                     } else {
-                                        console.error('❌ Pagamento rejeitado:', result);
                                         updateStatusIndicator('error', 'Rejeitado');
                                         showStatusScreen('error', result);
                                         reject();
                                     }
                                 })
                                 .catch(error => {
-                                    console.error('❌ Erro no pagamento:', error);
                                     updateStatusIndicator('error', 'Erro');
                                     showStatusScreen('error');
                                     reject();
@@ -1092,15 +1019,6 @@
                     settings
                 );
                 
-                console.log('✅ Payment Brick criado baseado no exemplo');
-                
-                setTimeout(() => {
-                    const loadingElement = document.querySelector('.loading-state');
-                    if (loadingElement) {
-                        loadingElement.style.display = 'none';
-                    }
-                }, 2000);
-                
             } catch (error) {
                 console.error('❌ Erro ao criar Payment Brick:', error);
                 updateStatusIndicator('error', 'Erro de inicialização');
@@ -1108,7 +1026,6 @@
                 document.getElementById('paymentBrick_container').innerHTML = `
                     <div class="loading-state">
                         <p style="color: #ff4d4f;">Erro ao carregar pagamentos</p>
-                        <p style="font-size: 14px; color: #666;">Verifique sua conexão e recarregue a página</p>
                         <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             Recarregar Página
                         </button>
@@ -1117,32 +1034,15 @@
             }
         };
 
-        // INICIALIZAÇÃO (BASEADO NO EXEMPLO)
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Inicializando checkout baseado no exemplo funcional');
-            console.log('📧 Email final:', finalEmail);
-            console.log('🎯 UID final:', userUID);
-            
-            // EXIBIR DADOS DA URL
             displayUserData();
             
             testBackendConnection().then(isOnline => {
                 if (isOnline) {
-                    console.log('✅ Backend online - iniciando Payment Brick');
                     updateStatusIndicator('success', 'Conectado');
                     renderPaymentBrick(bricksBuilder);
                 } else {
-                    console.error('❌ Backend offline');
                     updateStatusIndicator('error', 'Offline');
-                    document.getElementById('paymentBrick_container').innerHTML = `
-                        <div class="loading-state">
-                            <p style="color: #ff4d4f;">Serviço temporariamente indisponível</p>
-                            <p style="font-size: 14px; color: #666;">Tente novamente em alguns instantes</p>
-                            <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                Tentar Novamente
-                            </button>
-                        </div>
-                    `;
                 }
             });
         });
@@ -1153,17 +1053,10 @@
 
         async function testBackendConnection() {
             try {
-                const response = await fetch(`${BACKEND_URL}/health`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                const response = await fetch(`${BACKEND_URL}/health`);
                 const data = await response.json();
-                console.log('🏥 Status do backend:', data);
                 return data.status === 'OK';
             } catch (error) {
-                console.error('❌ Backend offline:', error);
                 return false;
             }
         }
